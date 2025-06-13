@@ -1,23 +1,24 @@
 {
   "expo": {
-    "name": "abstraxion-expo-demo",
-    "slug": "abstraxion-expo-demo",
+    "name": "chatpaygo",
+    "slug": "chatpaygo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "abstraxion-expo-demo",
+    "scheme": "chatpaygo",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.abstraxion-expo-demo"
+      "bundleIdentifier": "com.anonymous.chatpaygo"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.anonymous.abstraxionexpodemo"
+      "edgeToEdgeEnabled": true,
+      "package": "com.anonymous.chatpaygo"
     },
     "web": {
       "bundler": "metro",
