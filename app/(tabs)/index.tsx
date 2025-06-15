@@ -18,6 +18,13 @@ import { useAuthStore } from '@/store/auth-store';
 import { useTransactionStore } from '@/store/transaction-store';
 import { balances } from '@/mocks/balances';
 import { organizations } from '@/mocks/organizations';
+import {
+  useAbstraxionAccount,
+  useAbstraxionSigningClient,
+  useAbstraxionClient,
+} from "@burnt-labs/abstraxion-react-native";
+import type { ExecuteResult } from "@cosmjs/cosmwasm-stargate";
+
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = 300;
