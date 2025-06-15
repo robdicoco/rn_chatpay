@@ -1,12 +1,28 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import Button from '@/components/Button';
 import { useThemeColors } from '@/constants/colors';
 import { useAuthStore } from '@/store/auth-store';
+import {
+  useAbstraxionAccount,
+  // useAbstraxionSigningClient,
+  // useAbstraxionClient,
+} from "@burnt-labs/abstraxion-react-native";
+
+import { retryOperation, type ExecuteResultOrUndefined,  type QueryResult   } from '../../src/services/ConnectUtils';
+
+if (!process.env.EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS) {
+  throw new Error("EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS is not set in your environment file");
+}
 
 export default function WelcomeScreen() {
+  // Abstraxion hooks
+  const { data: account, logout, login, isConnected, isConnecting } = useAbstraxionAccount();
+  // const { client, signArb } = useAbstraxionSigningClient();
+  // const { client: queryClient } = useAbstraxionClient();
+
   const { isAuthenticated } = useAuthStore();
   const colors = useThemeColors();
 
@@ -74,22 +90,34 @@ export default function WelcomeScreen() {
         </View>
       </View>
       
-      <View style={styles.buttonContainer}>
-        <Button
-          title="Create Account"
-          onPress={() => router.push('/signup')}
-          gradient
-          size="large"
-          style={styles.button}
-        />
-        <Button
-          title="Log In"
-          onPress={() => router.push('/login')}
+      {!isConnected ? (<View style={styles.buttonContainer}>
+        {/* <Button
+          title="Xion Log In"
+          onPress={() => login}
           variant="outline"
           size="large"
           style={styles.button}
-        />
-      </View>
+        /> */}
+        <TouchableOpacity
+          onPress={login}
+          style={[styles.menuButton, styles.halfWidthButton, isConnecting && styles.disabledButton]}
+          disabled={isConnecting}
+        >
+          <Text style={styles.buttonText}>
+            {isConnecting ? "Xion Logging in..." : "Xion Log In"}
+          </Text>
+        </TouchableOpacity>
+      </View>) : (
+        <View style={styles.buttonContainer}>
+          <Button
+            title="Xion Log Out"
+            onPress={() => logout()}
+            variant="outline"
+            size="large"
+            style={styles.button}
+          />
+        </View>
+      )}
     </View>
   );
 }
@@ -156,5 +184,52 @@ const styles = StyleSheet.create({
   button: {
     width: '100%',
     marginBottom: 16,
+  },
+  smallButton: {
+    padding: 8,
+    borderRadius: 5,
+    backgroundColor: "#2196F3",
+    marginLeft: 10,
+  },
+  menuButton: {
+    padding: 15,
+    borderRadius: 5,
+    backgroundColor: "#2196F3",
+    alignItems: "center",
+    flex: 1,
+    minWidth: 120,
+    maxWidth: '48%',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold', 
+    textAlign: 'center',
+    borderRadius: 5,
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  fullWidthButton: {
+    width: '100%',
+    maxWidth: '100%',
+  },
+  halfWidthButton: {
+    width: '50%',
+    maxWidth: '50%',
+    alignItems: 'center',
+  },
+  linkButton: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: '#2196F3',
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  logoutButton: {
+    marginTop: 15,
+    backgroundColor: '#dc3545',
+    width: '100%',
+    maxWidth: '100%',
   },
 });
