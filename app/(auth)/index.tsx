@@ -17,7 +17,6 @@ if (!process.env.EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS) {
   throw new Error("EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS is not set in your environment file");
 }
 
-const colors = useThemeColors();
 export default function WelcomeScreen() {
   // Abstraxion hooks
   const { data: account, logout, login, isConnected, isConnecting } = useAbstraxionAccount();
@@ -25,6 +24,8 @@ export default function WelcomeScreen() {
   // const { client: queryClient } = useAbstraxionClient();
 
   const { isAuthenticated } = useAuthStore();
+
+  const colors = useThemeColors();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -91,21 +92,25 @@ export default function WelcomeScreen() {
       </View>
       
       {!isConnected ? (<View style={styles.buttonContainer}>
-        <Button
+        {/* <Button
           title="Xion Log In"
           onPress={() => login}
           variant="outline"
           size="large"
           style={styles.button}
-        />
+        /> */}
         <TouchableOpacity
           onPress={login}
-          style={[styles.menuButton, styles.halfWidthButton, isConnecting && styles.disabledButton]}
+          style={[
+            styles.menuButton, 
+            styles.fullWidthButton, 
+            isConnecting && styles.disabledButton,
+            { borderColor: colors.primary, backgroundColor: colors.background }
+          ]}
           disabled={isConnecting}
         >
-          <Text style={styles.textButton}>
-            {/* {isConnecting ? "Xion Logging in..." : "Xion Log In"} */}
-            AAAAAA
+          <Text style={[styles.textButton, { color: colors.primary }]}>
+            {isConnecting ? "Xion Logging in..." : "Xion Log In"}
           </Text>
         </TouchableOpacity>
       </View>) : (
@@ -194,15 +199,14 @@ const styles = StyleSheet.create({
   },
   menuButton: {
     padding: 15,
-    borderRadius: 15,
-    borderWidth: 2,
+    borderRadius: 12,
+    borderWidth: 3,
     alignItems: 'center',
     justifyContent: 'center',
-    borderColor: colors.primary,
-    backgroundColor: colors.background,
   },
-  halfWidthButton: {
-    width: '48%',
+  fullWidthButton: {
+    width: '100%',
+    alignSelf: 'center',
   },
   disabledButton: {
     opacity: 0.6,
@@ -210,6 +214,5 @@ const styles = StyleSheet.create({
   textButton: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.primary,
   },
 });
