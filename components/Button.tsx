@@ -9,7 +9,7 @@ import {
   TouchableOpacityProps
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import colors from '@/constants/colors';
+import { useThemeColors } from '@/constants/colors';
 
 interface ButtonProps extends TouchableOpacityProps {
   title: string;
@@ -35,19 +35,42 @@ export default function Button({
   gradient = false,
   ...rest
 }: ButtonProps) {
+  const colors = useThemeColors();
+
   const buttonStyles: ViewStyle[] = [
     styles.button,
     styles[`${size}Button`],
-    styles[`${variant}Button`],
-    disabled && styles.disabledButton,
+    {
+      ...(variant === 'primary' && { backgroundColor: colors.primary }),
+      ...(variant === 'secondary' && { backgroundColor: colors.secondary }),
+      ...(variant === 'outline' && { 
+        backgroundColor: 'transparent',
+        borderWidth: 1,
+        borderColor: colors.primary 
+      }),
+      ...(variant === 'text' && { 
+        backgroundColor: 'transparent',
+        paddingVertical: 4,
+        paddingHorizontal: 8 
+      }),
+      ...(disabled && { 
+        backgroundColor: colors.textSecondary,
+        borderColor: colors.textSecondary 
+      }),
+    },
     style as ViewStyle,
   ];
 
   const textStyles: TextStyle[] = [
     styles.text,
     styles[`${size}Text`],
-    styles[`${variant}Text`],
-    disabled && styles.disabledText,
+    {
+      ...(variant === 'primary' && { color: colors.white }),
+      ...(variant === 'secondary' && { color: colors.white }),
+      ...(variant === 'outline' && { color: colors.primary }),
+      ...(variant === 'text' && { color: colors.primary }),
+      ...(disabled && { color: colors.mediumGray }),
+    },
     textStyle as TextStyle,
   ];
 
@@ -115,26 +138,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 32,
   },
-  primaryButton: {
-    backgroundColor: colors.primary,
-  },
-  secondaryButton: {
-    backgroundColor: colors.secondary,
-  },
-  outlineButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  textButton: {
-    backgroundColor: 'transparent',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-  },
-  disabledButton: {
-    backgroundColor: colors.textSecondary,
-    borderColor: colors.textSecondary,
-  },
   text: {
     fontWeight: '600',
   },
@@ -146,20 +149,5 @@ const styles = StyleSheet.create({
   },
   largeText: {
     fontSize: 18,
-  },
-  primaryText: {
-    color: colors.white,
-  },
-  secondaryText: {
-    color: colors.white,
-  },
-  outlineText: {
-    color: colors.primary,
-  },
-  textText: {
-    color: colors.primary,
-  },
-  disabledText: {
-    color: colors.mediumGray,
   },
 });

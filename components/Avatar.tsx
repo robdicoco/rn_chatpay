@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
-import colors from '@/constants/colors';
+import { useThemeColors } from '@/constants/colors';
 
 interface AvatarProps {
   uri: string;
@@ -16,8 +16,11 @@ export default function Avatar({
   size = 40,
   style,
   showBorder = false,
-  borderColor = colors.primary,
+  borderColor,
 }: AvatarProps) {
+  const colors = useThemeColors();
+  const defaultBorderColor = borderColor || colors.primary;
+
   return (
     <View
       style={[
@@ -27,7 +30,7 @@ export default function Avatar({
           height: size,
           borderRadius: size / 2,
           borderWidth: showBorder ? 2 : 0,
-          borderColor: borderColor,
+          borderColor: defaultBorderColor,
         },
         style,
       ]}
@@ -40,6 +43,7 @@ export default function Avatar({
             width: showBorder ? size - 4 : size,
             height: showBorder ? size - 4 : size,
             borderRadius: (showBorder ? size - 4 : size) / 2,
+            backgroundColor: colors.textSecondary,
           },
         ]}
         contentFit="cover"
@@ -56,6 +60,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   image: {
-    backgroundColor: colors.textSecondary,
+    // backgroundColor moved to inline style to use theme colors
   },
 });

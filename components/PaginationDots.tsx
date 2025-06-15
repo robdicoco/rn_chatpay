@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import colors from '@/constants/colors';
+import { useThemeColors } from '@/constants/colors';
 
 interface PaginationDotsProps {
   total: number;
@@ -8,6 +8,8 @@ interface PaginationDotsProps {
 }
 
 export default function PaginationDots({ total, current }: PaginationDotsProps) {
+  const colors = useThemeColors();
+
   return (
     <View style={styles.container}>
       {Array.from({ length: total }).map((_, index) => (
@@ -15,7 +17,9 @@ export default function PaginationDots({ total, current }: PaginationDotsProps) 
           key={index}
           style={[
             styles.dot,
-            index === current ? styles.activeDot : styles.inactiveDot,
+            {
+              backgroundColor: index === current ? colors.primary : colors.lightGray,
+            },
           ]}
         />
       ))}
@@ -35,11 +39,5 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     marginHorizontal: 4,
-  },
-  activeDot: {
-    backgroundColor: colors.primary,
-  },
-  inactiveDot: {
-    backgroundColor: colors.lightGray,
   },
 });

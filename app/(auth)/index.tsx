@@ -17,6 +17,7 @@ if (!process.env.EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS) {
   throw new Error("EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS is not set in your environment file");
 }
 
+const colors = useThemeColors();
 export default function WelcomeScreen() {
   // Abstraxion hooks
   const { data: account, logout, login, isConnected, isConnecting } = useAbstraxionAccount();
@@ -24,7 +25,6 @@ export default function WelcomeScreen() {
   // const { client: queryClient } = useAbstraxionClient();
 
   const { isAuthenticated } = useAuthStore();
-  const colors = useThemeColors();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -91,20 +91,21 @@ export default function WelcomeScreen() {
       </View>
       
       {!isConnected ? (<View style={styles.buttonContainer}>
-        {/* <Button
+        <Button
           title="Xion Log In"
           onPress={() => login}
           variant="outline"
           size="large"
           style={styles.button}
-        /> */}
+        />
         <TouchableOpacity
           onPress={login}
           style={[styles.menuButton, styles.halfWidthButton, isConnecting && styles.disabledButton]}
           disabled={isConnecting}
         >
-          <Text style={styles.buttonText}>
-            {isConnecting ? "Xion Logging in..." : "Xion Log In"}
+          <Text style={styles.textButton}>
+            {/* {isConnecting ? "Xion Logging in..." : "Xion Log In"} */}
+            AAAAAA
           </Text>
         </TouchableOpacity>
       </View>) : (
@@ -193,43 +194,22 @@ const styles = StyleSheet.create({
   },
   menuButton: {
     padding: 15,
-    borderRadius: 5,
-    backgroundColor: "#2196F3",
-    alignItems: "center",
-    flex: 1,
-    minWidth: 120,
-    maxWidth: '48%',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold', 
-    textAlign: 'center',
-    borderRadius: 5,
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
-  fullWidthButton: {
-    width: '100%',
-    maxWidth: '100%',
+    borderRadius: 15,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderColor: colors.primary,
+    backgroundColor: colors.background,
   },
   halfWidthButton: {
-    width: '50%',
-    maxWidth: '50%',
-    alignItems: 'center',
+    width: '48%',
   },
-  linkButton: {
-    marginTop: 10,
-    padding: 10,
-    backgroundColor: '#2196F3',
-    borderRadius: 5,
-    alignItems: 'center',
+  disabledButton: {
+    opacity: 0.6,
   },
-  logoutButton: {
-    marginTop: 15,
-    backgroundColor: '#dc3545',
-    width: '100%',
-    maxWidth: '100%',
+  textButton: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary,
   },
 });
