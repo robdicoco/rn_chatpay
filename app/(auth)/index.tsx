@@ -11,8 +11,6 @@ import {
   // useAbstraxionClient,
 } from "@burnt-labs/abstraxion-react-native";
 
-import { retryOperation, type ExecuteResultOrUndefined,  type QueryResult   } from '../../src/services/ConnectUtils';
-
 if (!process.env.EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS) {
   throw new Error("EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS is not set in your environment file");
 }
