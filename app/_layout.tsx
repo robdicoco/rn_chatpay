@@ -22,6 +22,8 @@ import { useThemeStore } from "@/store/theme-store";
 import { useThemeColors } from "@/constants/colors";
 
 import { Buffer } from "buffer";
+import crypto from "react-native-quick-crypto";
+global.crypto = crypto;
 global.Buffer = Buffer;
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
