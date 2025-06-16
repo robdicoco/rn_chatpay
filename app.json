@@ -1,23 +1,23 @@
 {
   "expo": {
-    "name": "abstraxion-expo-demo",
-    "slug": "abstraxion-expo-demo",
+    "name": "ChatPay Go Xion",
+    "slug": "chatpay-go-xion",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "abstraxion-expo-demo",
+    "scheme": "chatpay-go-xion",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.abstraxion-expo-demo"
+      "bundleIdentifier": "com.chatpay.chatpay-go-xion"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.anonymous.abstraxionexpodemo"
+      "package": "com.chatpay.chatpaygoxion"
     },
     "web": {
       "bundler": "metro",
