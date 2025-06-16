@@ -17,7 +17,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.chatpay.chatpaygoxion"
+      "package": "com.chatpay.chatpay-go-xion"
     },
     "web": {
       "bundler": "metro",

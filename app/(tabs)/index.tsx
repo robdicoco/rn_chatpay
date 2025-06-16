@@ -599,6 +599,15 @@ const styles = StyleSheet.create({
     minWidth: 120,
     maxWidth: '48%',
   },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  disabledButton: {
+    backgroundColor: "#ccc",
+    opacity: 0.6,
+  },
   resultsContainer: {
     flex: 1,
     gap: 20,
