@@ -11,6 +11,8 @@ if (!process.env.EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS) {
   throw new Error("EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS is not set in your environment file");
 }
 
+const CONTRACT_ADDRESS = process.env.EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS;
+
 type ExecuteResultOrUndefined = ExecuteResult | undefined;
 type QueryResult = {
   users?: string[];
@@ -19,13 +21,13 @@ type QueryResult = {
 };
 
 // Add retry utility function
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-const retryOperation = async <T>(
+const retryOperation = async function<T>(
   operation: () => Promise<T>,
   maxRetries = 3,
   delay = 1000
-): Promise<T> => {
+): Promise<T> {
   let lastError: Error | null = null;
   
   for (let i = 0; i < maxRetries; i++) {
@@ -70,7 +72,7 @@ export default function Index() {
       if (account?.bech32Address && queryClient) {
         try {
           const response = await retryOperation(async () => {
-            return await queryClient.queryContractSmart(process.env.EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS, {
+            return await queryClient.queryContractSmart(CONTRACT_ADDRESS, {
               get_value_by_user: { 
                 address: account.bech32Address 
               }
@@ -138,7 +140,7 @@ export default function Index() {
     setShowValueByUserForm(false);
     try {
       if (!queryClient) throw new Error("Query client is not defined");
-      const response = await queryClient.queryContractSmart(process.env.EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS, { get_users: {} });
+      const response = await queryClient.queryContractSmart(CONTRACT_ADDRESS, { get_users: {} });
       setQueryResult({ users: response });
     } catch (error) {
       Alert.alert("Error", "Error querying users");
@@ -157,7 +159,7 @@ export default function Index() {
     setShowValueByUserForm(false);
     try {
       if (!queryClient) throw new Error("Query client is not defined");
-      const response = await queryClient.queryContractSmart(process.env.EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS, { get_map: {} });
+      const response = await queryClient.queryContractSmart(CONTRACT_ADDRESS, { get_map: {} });
       setQueryResult({ map: response });
     } catch (error) {
       Alert.alert("Error", "Error querying map");
@@ -176,7 +178,7 @@ export default function Index() {
     setShowValueByUserForm(false);
     try {
       if (!queryClient) throw new Error("Query client is not defined");
-      const response = await queryClient.queryContractSmart(process.env.EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS, { 
+      const response = await queryClient.queryContractSmart(CONTRACT_ADDRESS, { 
         get_value_by_user: { address } 
       });
       setQueryResult({ value: response });
@@ -246,7 +248,7 @@ export default function Index() {
       const res = await retryOperation(async () => {
         return await client.execute(
           account.bech32Address,
-          process.env.EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS,
+          CONTRACT_ADDRESS,
           msg,
           "auto"
         );
@@ -265,7 +267,7 @@ export default function Index() {
       // Refresh data with retry
       const updatedData = await retryOperation(async () => {
         if (!queryClient) throw new Error("Query client not available");
-        return await queryClient.queryContractSmart(process.env.EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS, {
+        return await queryClient.queryContractSmart(CONTRACT_ADDRESS, {
           get_value_by_user: { 
             address: account.bech32Address 
           }
