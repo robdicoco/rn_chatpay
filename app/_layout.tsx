@@ -28,7 +28,7 @@ const treasuryConfig = {
   gasPrice: "0.001uxion", // If you feel the need to change the gasPrice when connecting to signer, set this value. Please stick to the string format seen in example
   rpcUrl: process.env.EXPO_PUBLIC_RPC_ENDPOINT,
   restUrl: process.env.EXPO_PUBLIC_REST_ENDPOINT,
-  callbackUrl: "abstraxion-expo-demo://", // this comes from app.json scheme
+  callbackUrl: "chatpaygoxion://",
 };
 
 export default function RootLayout() {
