@@ -41,7 +41,7 @@ export default function Button({
     styles[`${variant}Button`],
     disabled && styles.disabledButton,
     style as ViewStyle,
-  ];
+  ].filter(Boolean) as ViewStyle[];
 
   const textStyles: TextStyle[] = [
     styles.text,
@@ -49,7 +49,7 @@ export default function Button({
     styles[`${variant}Text`],
     disabled && styles.disabledText,
     textStyle as TextStyle,
-  ];
+  ].filter(Boolean) as TextStyle[];
 
   const renderButton = () => (
     <TouchableOpacity
