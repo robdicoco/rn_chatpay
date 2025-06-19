@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Platform, Alert, Clipboard, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Platform, Alert, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Clipboard from '@react-native-clipboard/clipboard';
 import { router } from 'expo-router';
 import Button from '@/components/Button';
 import TouchableButton from '@/components/TouchableButton';
@@ -14,17 +15,27 @@ import {
 
 export default function WelcomeScreen() {
   const { isAuthenticated } = useAuthStore();
-    // Abstraxion hooks
-    const { data: account, logout, login, isConnected, isConnecting } = useAbstraxionAccount();
-
+  // Abstraxion hooks
+  const { data: account, logout, login, isConnected, isConnecting } = useAbstraxionAccount();
 
   // State variables
   const [loading, setLoading] = useState(false);
   const [isOperationInProgress, setIsOperationInProgress] = useState(false);
-
-
+  const [localIsConnected, setLocalIsConnected] = useState(false);
 
   const colors = useThemeColors();
+
+  // Monitor connection status changes
+  useEffect(() => {
+    setLocalIsConnected(isConnected);
+  }, [isConnected]);
+
+  // Monitor account changes
+  useEffect(() => {
+    if (account?.bech32Address) {
+      setLocalIsConnected(true);
+    }
+  }, [account?.bech32Address]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -32,6 +43,39 @@ export default function WelcomeScreen() {
     }
   }, [isAuthenticated]);
 
+  const handleLogin = async () => {
+    try {
+      setLoading(true);
+      await login();
+      // Add a small delay to allow the connection to establish
+      setTimeout(() => {
+        setLocalIsConnected(true);
+        setLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error('Login error:', error);
+      setLoading(false);
+      Alert.alert("Login Error", "Failed to connect to Xion. Please try again.");
+    }
+  };
+
+  const refreshConnectionStatus = () => {
+    // Force refresh the connection status
+    if (account?.bech32Address) {
+      setLocalIsConnected(true);
+    } else {
+      setLocalIsConnected(isConnected);
+    }
+  };
+
+  // Add periodic refresh of connection status
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshConnectionStatus();
+    }, 2000); // Check every 2 seconds
+
+    return () => clearInterval(interval);
+  }, [account?.bech32Address, isConnected]);
 
   const clearResults = () => {
     // setQueryResult({});
@@ -40,10 +84,9 @@ export default function WelcomeScreen() {
 
   function handleLogout() {
     logout();
+    setLocalIsConnected(false);
     clearResults();
   }
-
-
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -61,13 +104,18 @@ export default function WelcomeScreen() {
         style={styles.background}
       />
       
-      <View style={styles.contentContainer}>
+      <View style={[styles.contentContainer, { 
+        justifyContent: 'flex-start', 
+        alignItems: 'center',
+        paddingTop: 60,
+        flexDirection: 'column'
+      }]}>
         <Text style={[styles.title, { color: colors.textPrimary }]}>ChatPay Go</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           Send money instantly to anyone, anywhere in the world
         </Text>
         
-        <View style={styles.featureContainer}>
+        {!localIsConnected ? (<View style={styles.featureContainer}>
           <View style={styles.featureItem}>
             <View style={styles.featureIcon}>
               <LinearGradient
@@ -110,55 +158,76 @@ export default function WelcomeScreen() {
             <Text style={[styles.featureText, { color: colors.textPrimary }]}>Secure and encrypted transactions</Text>
           </View>
         </View>
+        ) : (
+          <>
+          </>
+        )}
       </View>
       
-      <View >
-        {!isConnected ? (
-            <View style={styles.connectButtonContainer}>
+      <View style={[styles.contentContainer, { 
+        justifyContent: 'flex-end', 
+        alignItems: 'center',
+        flexDirection: 'column'
+      }]}>
+        {!localIsConnected ? ( 
+          
+            <View style={{width: '100%', alignItems: 'center', flexDirection: 'column'}}>
               <TouchableButton
                 title={isConnecting ? "Logging in..." : "Log In to Xion"}
-                onPress={login}
-                variant="primary"
+                onPress={handleLogin}
+                variant="outline"
                 size="large"
                 disabled={isConnecting}
+              />
+
+              {/* <Button
+                title="Create Account"
+                onPress={() => router.push('/signup')}
+                gradient
+                size="large"
+                style={styles.button}
+              /> */}
+              <Button
+                title="Log In Test"
+                onPress={() => router.push('/log_xion_sample')}
+                variant="outline"
+                size="large"
                 style={styles.button}
               />
             </View>
-          ) : ( <View >
-            <Text style={styles.addressText} numberOfLines={1} ellipsizeMode="middle">
-              {account?.bech32Address}
-            </Text>
-            <TouchableButton
-              title="Copy"
-              onPress={() => account?.bech32Address && copyToClipboard(account.bech32Address)}
-              variant="primary"
-              size="small"
-              style={styles.copyButton}
-            />
+          ) : ( <View style={styles.contentContainer}>
+            <View style=  {{width: '100%', alignItems: 'center', justifyContent: 'flex-start', flexDirection: 'column'}}>
+              <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                  Your Xion Account:
+              </Text>
+              <View style={styles.featureItem}>
+                <Text style={[styles.featureText, { color: colors.textPrimary }]} numberOfLines={1} ellipsizeMode="middle">
+                {account?.bech32Address}
+                  </Text>
+            
+                <TouchableButton
+                  title="📋"
+                  onPress={() => account?.bech32Address && copyToClipboard(account.bech32Address)}
+                  variant="text"
+                  size="small"
+                />
 
+                {/* <TouchableButton
+                  title="🔄"
+                  onPress={refreshConnectionStatus}
+                  variant="text"
+                  size="small"
+                /> */}
+              </View>
+            </View>
             <TouchableButton
-              title="Logout"
-              onPress={logout}
+              title="Logout from Xion"
+              onPress={handleLogout}
               variant="danger"
-              size="large"
+              size="medium"
               disabled={loading || isOperationInProgress}
-              style={styles.button}
             />
           </View>)}
-        <Button
-          title="Create Account"
-          onPress={() => router.push('/signup')}
-          gradient
-          size="large"
-          style={styles.button}
-        />
-        <Button
-          title="Log In"
-          onPress={() => router.push('/log_xion_sample')}
-          variant="outline"
-          size="large"
-          style={styles.button}
-        />
       </View>
     </View>
   );
@@ -248,6 +317,6 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   copyButton: {
-    minWidth: 60,
+    minWidth: 15,
   },
 });

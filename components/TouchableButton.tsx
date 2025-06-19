@@ -35,18 +35,23 @@ export default function TouchableButton({
   gradient = false,
   ...rest
 }: TouchableButtonProps) {
-  const buttonStyles: ViewStyle[] = [
+  const baseButtonStyles: ViewStyle[] = [
     styles.button,
     styles[`${size}Button`],
-    styles[`${variant}Button`],
     disabled && styles.disabledButton,
     style as ViewStyle,
   ].filter(Boolean) as ViewStyle[];
 
+  const variantButtonStyles: ViewStyle[] = gradient 
+    ? [] // Don't apply variant background colors when using gradient
+    : [styles[`${variant}Button`]].filter(Boolean) as ViewStyle[];
+
+  const buttonStyles: ViewStyle[] = [...baseButtonStyles, ...variantButtonStyles];
+
   const textStyles: TextStyle[] = [
     styles.text,
     styles[`${size}Text`],
-    styles[`${variant}Text`],
+    gradient ? styles.gradientText : styles[`${variant}Text`],
     disabled && styles.disabledText,
     textStyle as TextStyle,
   ].filter(Boolean) as TextStyle[];
@@ -64,7 +69,7 @@ export default function TouchableButton({
           colors={[colors.primary, colors.secondary]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={[buttonStyles, styles.gradientButton]}
+          style={[baseButtonStyles, styles.gradientButton]}
         >
           {renderContent()}
         </LinearGradient>
@@ -164,6 +169,9 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   dangerText: {
+    color: colors.white,
+  },
+  gradientText: {
     color: colors.white,
   },
   disabledText: {
