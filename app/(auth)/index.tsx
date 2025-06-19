@@ -84,7 +84,7 @@ export default function WelcomeScreen() {
         />
         <Button
           title="Log In"
-          onPress={() => router.push('/login')}
+          onPress={() => router.push('/loginho')}
           variant="outline"
           size="large"
           style={styles.button}
