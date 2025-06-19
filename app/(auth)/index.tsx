@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Platform, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Platform, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { router } from 'expo-router';
@@ -12,6 +12,7 @@ import {
   useAbstraxionSigningClient,
   useAbstraxionClient,
 } from "@burnt-labs/abstraxion-react-native";
+import { FirebaseService } from '@/services/firebase';
 
 export default function WelcomeScreen() {
   const { isAuthenticated } = useAuthStore();
@@ -22,6 +23,7 @@ export default function WelcomeScreen() {
   const [loading, setLoading] = useState(false);
   const [isOperationInProgress, setIsOperationInProgress] = useState(false);
   const [localIsConnected, setLocalIsConnected] = useState(false);
+  const [checkingUser, setCheckingUser] = useState(false);
 
   const colors = useThemeColors();
 
@@ -30,12 +32,34 @@ export default function WelcomeScreen() {
     setLocalIsConnected(isConnected);
   }, [isConnected]);
 
-  // Monitor account changes
+  // Monitor account changes and check user existence
   useEffect(() => {
     if (account?.bech32Address) {
       setLocalIsConnected(true);
+      checkUserExistence(account.bech32Address);
     }
   }, [account?.bech32Address]);
+
+  const checkUserExistence = async (walletHash: string) => {
+    setCheckingUser(true);
+    try {
+      const existingUser = await FirebaseService.checkUserByWalletHash(walletHash);
+      if (!existingUser) {
+        // User doesn't exist in Firebase, redirect to signup
+        console.log('User not found in Firebase, redirecting to signup');
+        router.push('/signup');
+      } else {
+        console.log('User found in Firebase:', existingUser.name);
+        // User exists, can proceed to main app
+        // You might want to update the auth store with the Firebase user data
+      }
+    } catch (error) {
+      console.error('Error checking user existence:', error);
+      Alert.alert('Error', 'Failed to check user account. Please try again.');
+    } finally {
+      setCheckingUser(false);
+    }
+  };
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -170,41 +194,42 @@ export default function WelcomeScreen() {
         flexDirection: 'column'
       }]}>
         {!localIsConnected ? ( 
-          
-            <View style={{width: '100%', alignItems: 'center', flexDirection: 'column'}}>
-              <TouchableButton
-                title={isConnecting ? "Logging in..." : "Log In to Xion"}
-                onPress={handleLogin}
-                variant="outline"
-                size="large"
-                disabled={isConnecting}
-              />
+          <View style={{width: '100%', alignItems: 'center', flexDirection: 'column'}}>
+            <TouchableButton
+              title={isConnecting ? "Logging in..." : "Log In to Xion"}
+              onPress={handleLogin}
+              variant="outline"
+              size="large"
+              disabled={isConnecting}
+            />
 
-              {/* <Button
-                title="Create Account"
-                onPress={() => router.push('/signup')}
-                gradient
-                size="large"
-                style={styles.button}
-              /> */}
-              <Button
-                title="Log In Test"
-                onPress={() => router.push('/log_xion_sample')}
-                variant="outline"
-                size="large"
-                style={styles.button}
-              />
-            </View>
-          ) : ( <View style={styles.contentContainer}>
-            <View style=  {{width: '100%', alignItems: 'center', justifyContent: 'flex-start', flexDirection: 'column'}}>
+            <Button
+              title="Log In Test"
+              onPress={() => router.push('/log_xion_sample')}
+              variant="outline"
+              size="large"
+              style={styles.button}
+            />
+
+            <Button
+              title="Firebase Test"
+              onPress={() => router.push('/firebase-test')}
+              variant="secondary"
+              size="large"
+              style={styles.button}
+            />
+          </View>
+        ) : (
+          <View style={styles.contentContainer}>
+            <View style={{width: '100%', alignItems: 'center', justifyContent: 'flex-start', flexDirection: 'column'}}>
               <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                  Your Xion Account:
+                Your Xion Account:
               </Text>
               <View style={styles.featureItem}>
                 <Text style={[styles.featureText, { color: colors.textPrimary }]} numberOfLines={1} ellipsizeMode="middle">
-                {account?.bech32Address}
-                  </Text>
-            
+                  {account?.bech32Address}
+                </Text>
+                
                 <TouchableButton
                   title="📋"
                   onPress={() => account?.bech32Address && copyToClipboard(account.bech32Address)}
@@ -220,6 +245,16 @@ export default function WelcomeScreen() {
                 /> */}
               </View>
             </View>
+            
+            {checkingUser && (
+              <View style={styles.checkingUserContainer}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={[styles.checkingUserText, { color: colors.textSecondary }]}>
+                  Checking user account...
+                </Text>
+              </View>
+            )}
+            
             <TouchableButton
               title="Logout from Xion"
               onPress={handleLogout}
@@ -227,7 +262,8 @@ export default function WelcomeScreen() {
               size="medium"
               disabled={loading || isOperationInProgress}
             />
-          </View>)}
+          </View>
+        )}
       </View>
     </View>
   );
@@ -318,5 +354,15 @@ const styles = StyleSheet.create({
   },
   copyButton: {
     minWidth: 15,
+  },
+  checkingUserContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 16,
+    gap: 8,
+  },
+  checkingUserText: {
+    fontSize: 14,
   },
 });
