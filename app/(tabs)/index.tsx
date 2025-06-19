@@ -396,7 +396,7 @@ export default function Index() {
               disabled={isConnecting}
             >
               <Text style={styles.buttonText}>
-                {isConnecting ? "Connecting..." : "Connect Wallet"}
+                {isConnecting ? "Logging in..." : "Log In to Xion"}
               </Text>
             </TouchableOpacity>
           </View>
