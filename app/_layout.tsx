@@ -2,18 +2,16 @@ import "react-native-reanimated";
 import "react-native-get-random-values";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { Platform, StatusBar, useColorScheme } from "react-native";
+import { ErrorBoundary } from "./error-boundary";
+import { useThemeStore } from "@/store/theme-store";
+import { useThemeColors } from "@/constants/colors";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 
 import { AbstraxionProvider } from "@burnt-labs/abstraxion-react-native";
 
-import { useColorScheme } from "@/hooks/useColorScheme";
 
 import { Buffer } from "buffer";
 import crypto from "react-native-quick-crypto";
@@ -31,11 +29,24 @@ const treasuryConfig = {
   callbackUrl: "chatpaygoxion://",
 };
 
+export const unstable_settings = {
+  initialRouteName: "(auth)",
+};
+
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
+  const [loaded, error] = useFonts({
+    ...FontAwesome.font,
   });
+
+  const { mode } = useThemeStore();
+  const colors = useThemeColors();
+
+  useEffect(() => {
+    if (error) {
+      console.error(error);
+      throw error;
+    }
+  }, [error]);
 
   useEffect(() => {
     if (loaded) {
@@ -49,13 +60,65 @@ export default function RootLayout() {
 
   return (
     <AbstraxionProvider config={treasuryConfig}>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
+    <ErrorBoundary>
+      <StatusBar 
+        barStyle={mode === 'dark' ? "light-content" : "dark-content"} 
+        backgroundColor={colors.background} 
+      />
+      <RootLayoutNav />
+    </ErrorBoundary>
     </AbstraxionProvider>
+  );
+}
+
+function RootLayoutNav() {
+  const colors = useThemeColors();
+  
+  return (
+    <Stack
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: colors.background,
+        },
+        headerTintColor: colors.textPrimary,
+        headerTitleStyle: {
+          fontWeight: '600',
+        },
+        contentStyle: {
+          backgroundColor: colors.background,
+        },
+      }}
+    >
+      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen 
+        name="chat/[id]" 
+        options={{ 
+          title: "Chat",
+          headerBackTitle: "Back",
+        }} 
+      />
+      <Stack.Screen 
+        name="send-money" 
+        options={{ 
+          title: "Send Money",
+          presentation: "modal",
+        }} 
+      />
+      <Stack.Screen 
+        name="request-money" 
+        options={{ 
+          title: "Request Money",
+          presentation: "modal",
+        }} 
+      />
+      <Stack.Screen 
+        name="donate" 
+        options={{ 
+          title: "Donate",
+          presentation: "modal",
+        }} 
+      />
+    </Stack>
   );
 }
