@@ -338,7 +338,55 @@ export default function Index() {
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
       >
-        <Text style={styles.title}>User Map Dapp</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>ChatPay Go</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          Send money instantly to anyone, anywhere in the world
+        </Text>
+
+
+        <View style={styles.featureContainer}>
+          <View style={styles.featureItem}>
+            <View style={styles.featureIcon}>
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.featureIconGradient}
+              >
+                <Text style={styles.featureIconText}>💬</Text>
+              </LinearGradient>
+            </View>
+            <Text style={[styles.featureText, { color: colors.textPrimary }]}>Chat with friends while sending money</Text>
+          </View>
+          
+          <View style={styles.featureItem}>
+            <View style={styles.featureIcon}>
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.featureIconGradient}
+              >
+                <Text style={styles.featureIconText}>🌍</Text>
+              </LinearGradient>
+            </View>
+            <Text style={[styles.featureText, { color: colors.textPrimary }]}>Global payments with low fees</Text>
+          </View>
+          
+          <View style={styles.featureItem}>
+            <View style={styles.featureIcon}>
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.featureIconGradient}
+              >
+                <Text style={styles.featureIconText}>🔒</Text>
+              </LinearGradient>
+            </View>
+            <Text style={[styles.featureText, { color: colors.textPrimary }]}>Secure and encrypted transactions</Text>
+          </View>
+        </View>
 
         {!isConnected ? (
           <View style={styles.connectButtonContainer}>
@@ -564,11 +612,15 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    color: "#333",
-    textAlign: "center",
+    fontSize: 36,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 18,
+    textAlign: 'center',
+    marginBottom: 40,
   },
   mainContainer: {
     flex: 1,
@@ -679,6 +731,33 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: 'wrap',
     gap: 10,
+  },
+
+  featureContainer: {
+    width: '100%',
+    marginBottom: 40,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  featureIcon: {
+    marginRight: 16,
+  },
+  featureIconGradient: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  featureIconText: {
+    fontSize: 20,
+  },
+  featureText: {
+    fontSize: 16,
+    flex: 1,
   },
   resultCard: {
     backgroundColor: "#fff",
