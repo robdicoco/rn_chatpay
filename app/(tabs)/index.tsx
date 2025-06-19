@@ -1,15 +1,21 @@
 import { useState, useEffect } from "react";
-import { View, StyleSheet, Text, TouchableOpacity, Alert, TextInput, ScrollView, Clipboard, Linking } from "react-native";
+import { View, StyleSheet, Text, TouchableOpacity, Alert, TextInput, Clipboard, ScrollView, Linking, KeyboardAvoidingView, Platform } from "react-native";
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   useAbstraxionAccount,
   useAbstraxionSigningClient,
   useAbstraxionClient,
 } from "@burnt-labs/abstraxion-react-native";
+
+import { useThemeColors } from '@/constants/colors';
+import { useAuthStore } from '@/store/auth-store';
+
 import type { ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 
 if (!process.env.EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS) {
   throw new Error("EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS is not set in your environment file");
 }
+
 
 const CONTRACT_ADDRESS = process.env.EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS;
 
@@ -46,6 +52,8 @@ const retryOperation = async function<T>(
 };
 
 export default function Index() {
+  const colors = useThemeColors();
+
   // Abstraxion hooks
   const { data: account, logout, login, isConnected, isConnecting } = useAbstraxionAccount();
   const { client, signArb } = useAbstraxionSigningClient();
@@ -315,214 +323,226 @@ export default function Index() {
   };
 
   return (
-    <ScrollView 
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
     >
-      <Text style={styles.title}>User Map Dapp</Text>
+      <LinearGradient
+        colors={[colors.background, colors.background]}
+        style={styles.background}
+      />
 
-      {!isConnected ? (
-        <View style={styles.connectButtonContainer}>
-          <TouchableOpacity
-            onPress={login}
-            style={[styles.menuButton, styles.fullWidthButton, isConnecting && styles.disabledButton]}
-            disabled={isConnecting}
-          >
-            <Text style={styles.buttonText}>
-              {isConnecting ? "Connecting..." : "Connect Wallet"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <View style={styles.mainContainer}>
-          {/* Row 1: Account Info */}
-          <View style={styles.accountInfoContainer}>
-            <Text style={styles.accountLabel}>Connected Account:</Text>
-            <View style={styles.addressContainer}>
-              <Text style={styles.addressText} numberOfLines={1} ellipsizeMode="middle">
-                {account?.bech32Address}
+
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+      >
+        <Text style={styles.title}>User Map Dapp</Text>
+
+        {!isConnected ? (
+          <View style={styles.connectButtonContainer}>
+            <TouchableOpacity
+              onPress={login}
+              style={[styles.menuButton, styles.fullWidthButton, isConnecting && styles.disabledButton]}
+              disabled={isConnecting}
+            >
+              <Text style={styles.buttonText}>
+                {isConnecting ? "Connecting..." : "Connect Wallet"}
               </Text>
-              <TouchableOpacity
-                onPress={() => account?.bech32Address && copyToClipboard(account.bech32Address)}
-                style={styles.copyButton}
-              >
-                <Text style={styles.copyButtonText}>Copy</Text>
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity
-              onPress={logout}
-              style={[styles.menuButton, styles.logoutButton, styles.fullWidthButton, (loading || isOperationInProgress) && styles.disabledButton]}
-              disabled={loading || isOperationInProgress}
-            >
-              <Text style={styles.buttonText}>Logout</Text>
             </TouchableOpacity>
           </View>
-
-          {/* Row 2: Menu Buttons */}
-          <View style={styles.menuContainer}>
-            <TouchableOpacity
-              onPress={getUsers}
-              style={[styles.menuButton, (loading || isOperationInProgress) && styles.disabledButton]}
-              disabled={loading || isOperationInProgress}
-            >
-              <Text style={styles.buttonText}>Get Users</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={getMap}
-              style={[styles.menuButton, (loading || isOperationInProgress) && styles.disabledButton]}
-              disabled={loading || isOperationInProgress}
-            >
-              <Text style={styles.buttonText}>Get Map</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => {
-                setShowValueByUserForm(true);
-                setShowUpdateJsonForm(false);
-                clearResults();
-                setActiveView("valueForm");
-              }}
-              style={[styles.menuButton, (loading || isOperationInProgress) && styles.disabledButton]}
-              disabled={loading || isOperationInProgress}
-            >
-              <Text style={styles.buttonText}>Get Value by User</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => {
-                setShowUpdateJsonForm(true);
-                setShowValueByUserForm(false);
-                clearResults();
-                setActiveView("updateJson");
-              }}
-              style={[styles.menuButton, (loading || isOperationInProgress) && styles.disabledButton]}
-              disabled={loading || isOperationInProgress}
-            >
-              <Text style={styles.buttonText}>Update JSON</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Row 3: Results */}
-          <View style={styles.resultsContainer}>
-            {showValueByUserForm && (
-              <View style={styles.formSection}>
-                <Text style={styles.label}>Enter User Address:</Text>
-                <TextInput
-                  style={styles.input}
-                  value={addressInput}
-                  onChangeText={setAddressInput}
-                  placeholder="xion1..."
-                  placeholderTextColor="#666"
-                />
+        ) : (
+          <View style={styles.mainContainer}>
+            {/* Row 1: Account Info */}
+            <View style={styles.accountInfoContainer}>
+              <Text style={styles.accountLabel}>Connected Account:</Text>
+              <View style={styles.addressContainer}>
+                <Text style={styles.addressText} numberOfLines={1} ellipsizeMode="middle">
+                  {account?.bech32Address}
+                </Text>
                 <TouchableOpacity
-                  onPress={() => getValueByUser(addressInput)}
-                  style={[styles.menuButton, (loading || isOperationInProgress) && styles.disabledButton]}
-                  disabled={loading || isOperationInProgress}
+                  onPress={() => account?.bech32Address && copyToClipboard(account.bech32Address)}
+                  style={styles.copyButton}
                 >
-                  <Text style={styles.buttonText}>Get Value</Text>
+                  <Text style={styles.copyButtonText}>Copy</Text>
                 </TouchableOpacity>
               </View>
-            )}
+              <TouchableOpacity
+                onPress={logout}
+                style={[styles.menuButton, styles.logoutButton, styles.fullWidthButton, (loading || isOperationInProgress) && styles.disabledButton]}
+                disabled={loading || isOperationInProgress}
+              >
+                <Text style={styles.buttonText}>Logout</Text>
+              </TouchableOpacity>
+            </View>
 
-            {showUpdateJsonForm && account?.bech32Address && (
-              <View style={styles.formSection}>
-                <TextInput
-                  style={[styles.jsonInput, jsonError ? styles.errorInput : null]}
-                  value={jsonInput}
-                  onChangeText={(text) => {
-                    setJsonInput(text);
-                    validateJson(text);
-                  }}
-                  placeholder="Enter JSON data..."
-                  placeholderTextColor="#666"
-                  multiline
-                />
-                {jsonError ? (
-                  <Text style={styles.errorText}>{jsonError}</Text>
-                ) : null}
-                <View style={styles.buttonRow}>
+            {/* Row 2: Menu Buttons */}
+            <View style={styles.menuContainer}>
+              <TouchableOpacity
+                onPress={getUsers}
+                style={[styles.menuButton, (loading || isOperationInProgress) && styles.disabledButton]}
+                disabled={loading || isOperationInProgress}
+              >
+                <Text style={styles.buttonText}>Get Users</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={getMap}
+                style={[styles.menuButton, (loading || isOperationInProgress) && styles.disabledButton]}
+                disabled={loading || isOperationInProgress}
+              >
+                <Text style={styles.buttonText}>Get Map</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setShowValueByUserForm(true);
+                  setShowUpdateJsonForm(false);
+                  clearResults();
+                  setActiveView("valueForm");
+                }}
+                style={[styles.menuButton, (loading || isOperationInProgress) && styles.disabledButton]}
+                disabled={loading || isOperationInProgress}
+              >
+                <Text style={styles.buttonText}>Get Value by User</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setShowUpdateJsonForm(true);
+                  setShowValueByUserForm(false);
+                  clearResults();
+                  setActiveView("updateJson");
+                }}
+                style={[styles.menuButton, (loading || isOperationInProgress) && styles.disabledButton]}
+                disabled={loading || isOperationInProgress}
+              >
+                <Text style={styles.buttonText}>Update JSON</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Row 3: Results */}
+            <View style={styles.resultsContainer}>
+              {showValueByUserForm && (
+                <View style={styles.formSection}>
+                  <Text style={styles.label}>Enter User Address:</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={addressInput}
+                    onChangeText={setAddressInput}
+                    placeholder="xion1..."
+                    placeholderTextColor="#666"
+                  />
                   <TouchableOpacity
-                    onPress={updateValue}
-                    style={[styles.menuButton, (loading || isOperationInProgress || !!jsonError || isTransactionPending) && styles.disabledButton]}
-                    disabled={loading || isOperationInProgress || !!jsonError || isTransactionPending}
-                  >
-                    <Text style={styles.buttonText}>Submit JSON</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={handleFormatJson}
+                    onPress={() => getValueByUser(addressInput)}
                     style={[styles.menuButton, (loading || isOperationInProgress) && styles.disabledButton]}
                     disabled={loading || isOperationInProgress}
                   >
-                    <Text style={styles.buttonText}>Format JSON</Text>
+                    <Text style={styles.buttonText}>Get Value</Text>
                   </TouchableOpacity>
                 </View>
-              </View>
-            )}
+              )}
 
-            {/* Query Results */}
-            {activeView === "users" && queryResult.users && (
-              <View style={styles.resultCard}>
-                <Text style={styles.resultTitle}>Users:</Text>
-                {queryResult.users.map((user, index) => (
-                  <View key={index} style={styles.userRow}>
-                    <Text style={styles.userAddress}>{user}</Text>
+              {showUpdateJsonForm && account?.bech32Address && (
+                <View style={styles.formSection}>
+                  <TextInput
+                    style={[styles.jsonInput, jsonError ? styles.errorInput : null]}
+                    value={jsonInput}
+                    onChangeText={(text) => {
+                      setJsonInput(text);
+                      validateJson(text);
+                    }}
+                    placeholder="Enter JSON data..."
+                    placeholderTextColor="#666"
+                    multiline
+                  />
+                  {jsonError ? (
+                    <Text style={styles.errorText}>{jsonError}</Text>
+                  ) : null}
+                  <View style={styles.buttonRow}>
                     <TouchableOpacity
-                      onPress={() => {
-                        getValueByUser(user);
-                        setActiveView("value");
-                      }}
-                      style={styles.smallButton}
+                      onPress={updateValue}
+                      style={[styles.menuButton, (loading || isOperationInProgress || !!jsonError || isTransactionPending) && styles.disabledButton]}
+                      disabled={loading || isOperationInProgress || !!jsonError || isTransactionPending}
                     >
-                      <Text style={styles.buttonText}>View Value</Text>
+                      <Text style={styles.buttonText}>Submit JSON</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={handleFormatJson}
+                      style={[styles.menuButton, (loading || isOperationInProgress) && styles.disabledButton]}
+                      disabled={loading || isOperationInProgress}
+                    >
+                      <Text style={styles.buttonText}>Format JSON</Text>
                     </TouchableOpacity>
                   </View>
-                ))}
-              </View>
-            )}
+                </View>
+              )}
 
-            {activeView === "value" && queryResult.value && (
-              <View style={styles.resultCard}>
-                <Text style={styles.resultTitle}>Value for {selectedAddress}:</Text>
-                <Text style={styles.resultText}>{queryResult.value}</Text>
-              </View>
-            )}
+              {/* Query Results */}
+              {activeView === "users" && queryResult.users && (
+                <View style={styles.resultCard}>
+                  <Text style={styles.resultTitle}>Users:</Text>
+                  {queryResult.users.map((user, index) => (
+                    <View key={index} style={styles.userRow}>
+                      <Text style={styles.userAddress}>{user}</Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          getValueByUser(user);
+                          setActiveView("value");
+                        }}
+                        style={styles.smallButton}
+                      >
+                        <Text style={styles.buttonText}>View Value</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
 
-            {activeView === "map" && queryResult.map && (
-              <View style={styles.resultCard}>
-                <Text style={styles.resultTitle}>Map Contents:</Text>
-                {queryResult.map.map(([address, value], index) => (
-                  <View key={index} style={styles.mapItem}>
-                    <Text style={styles.mapAddress}>Address: {address}</Text>
-                    <Text style={styles.mapValue}>Value: {value}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
+              {activeView === "value" && queryResult.value && (
+                <View style={styles.resultCard}>
+                  <Text style={styles.resultTitle}>Value for {selectedAddress}:</Text>
+                  <Text style={styles.resultText}>{queryResult.value}</Text>
+                </View>
+              )}
 
-            {executeResult && (
-              <View style={styles.resultCard}>
-                <Text style={styles.resultTitle}>Transaction Details:</Text>
-                <Text style={styles.resultText}>
-                  Transaction Hash: {executeResult.transactionHash}
-                </Text>
-                <Text style={styles.resultText}>
-                  Block Height: {executeResult.height}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => {
-                    Linking.openURL(`https://www.mintscan.io/xion-testnet/tx/${executeResult.transactionHash}?height=${executeResult.height}`);
-                  }}
-                  style={styles.linkButton}
-                >
-                  <Text style={styles.linkText}>View on Mintscan</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+              {activeView === "map" && queryResult.map && (
+                <View style={styles.resultCard}>
+                  <Text style={styles.resultTitle}>Map Contents:</Text>
+                  {queryResult.map.map(([address, value], index) => (
+                    <View key={index} style={styles.mapItem}>
+                      <Text style={styles.mapAddress}>Address: {address}</Text>
+                      <Text style={styles.mapValue}>Value: {value}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {executeResult && (
+                <View style={styles.resultCard}>
+                  <Text style={styles.resultTitle}>Transaction Details:</Text>
+                  <Text style={styles.resultText}>
+                    Transaction Hash: {executeResult.transactionHash}
+                  </Text>
+                  <Text style={styles.resultText}>
+                    Block Height: {executeResult.height}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      Linking.openURL(`https://www.mintscan.io/xion-testnet/tx/${executeResult.transactionHash}?height=${executeResult.height}`);
+                    }}
+                    style={styles.linkButton}
+                  >
+                    <Text style={styles.linkText}>View on Mintscan</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
           </View>
-        </View>
-      )}
-    </ScrollView>
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -530,6 +550,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f0f0f0",
+  },
+  background: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
   },
   contentContainer: {
     padding: 20,
