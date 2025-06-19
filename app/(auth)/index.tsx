@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Platform, Alert, Clipboard, TouchableOpacity } 
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import Button from '@/components/Button';
+import TouchableButton from '@/components/TouchableButton';
 import { useThemeColors } from '@/constants/colors';
 import { useAuthStore } from '@/store/auth-store';
 import {
@@ -111,37 +112,38 @@ export default function WelcomeScreen() {
         </View>
       </View>
       
-      <View style={styles.buttonContainer}>
+      <View >
         {!isConnected ? (
             <View style={styles.connectButtonContainer}>
-              <TouchableOpacity
+              <TouchableButton
+                title={isConnecting ? "Logging in..." : "Log In to Xion"}
                 onPress={login}
-                style={[styles.menuButton, styles.button, isConnecting && styles.disabledButton]}
+                variant="primary"
+                size="large"
                 disabled={isConnecting}
-              >
-                <Text style={styles.buttonText}>
-                  {isConnecting ? "Logging in..." : "Log In to Xion"}
-                </Text>
-              </TouchableOpacity>
+                style={styles.button}
+              />
             </View>
-          ) : ( <View style={styles.addressContainer}>
+          ) : ( <View >
             <Text style={styles.addressText} numberOfLines={1} ellipsizeMode="middle">
               {account?.bech32Address}
             </Text>
-            <TouchableOpacity
+            <TouchableButton
+              title="Copy"
               onPress={() => account?.bech32Address && copyToClipboard(account.bech32Address)}
+              variant="primary"
+              size="small"
               style={styles.copyButton}
-            >
-              <Text style={styles.copyButtonText}>Copy</Text>
-            </TouchableOpacity>
+            />
 
-            <TouchableOpacity
-                onPress={logout}
-                style={[styles.menuButton, styles.logoutButton, styles.button, (loading || isOperationInProgress) && styles.disabledButton]}
-                disabled={loading || isOperationInProgress}
-              >
-                <Text style={styles.buttonText}>Logout</Text>
-              </TouchableOpacity>
+            <TouchableButton
+              title="Logout"
+              onPress={logout}
+              variant="danger"
+              size="large"
+              disabled={loading || isOperationInProgress}
+              style={styles.button}
+            />
           </View>)}
         <Button
           title="Create Account"
@@ -152,7 +154,7 @@ export default function WelcomeScreen() {
         />
         <Button
           title="Log In"
-          onPress={() => router.push('/loguinho')}
+          onPress={() => router.push('/log_xion_sample')}
           variant="outline"
           size="large"
           style={styles.button}
@@ -225,28 +227,10 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 16,
   },
-  menuButton: {
-    padding: 15,
-    borderRadius: 5,
-    backgroundColor: "#2196F3",
-    alignItems: "center",
-    flex: 1,
-    minWidth: 120,
-    maxWidth: '48%',
-  },
   connectButtonContainer: {
     width: '100%',
     paddingHorizontal: 20,
     alignItems: 'center',
-  },
-  disabledButton: {
-    backgroundColor: "#ccc",
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "500",
   },
   addressContainer: {
     flexDirection: "row",
@@ -255,6 +239,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
     padding: 10,
     borderRadius: 5,
+    marginBottom: 16,
   },
   addressText: {
     flex: 1,
@@ -263,20 +248,6 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   copyButton: {
-    backgroundColor: "#2196F3",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 4,
-  },
-  copyButtonText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  logoutButton: {
-    marginTop: 15,
-    backgroundColor: '#dc3545',
-    width: '100%',
-    maxWidth: '100%',
+    minWidth: 60,
   },
 });
