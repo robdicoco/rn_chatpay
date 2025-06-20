@@ -359,19 +359,19 @@ The project currently uses mock data for:
 
 ## 🔄 **WEEKLY UPDATES**
 
-### Week 1 (Current)
+### Current Week 
 - ✅ Completed authentication system
 - ✅ Implemented UI components
 - ✅ Created core screens
 - 🚧 Working on Firebase integration
 
-### Week 2 (Planned)
+### Next Week (Planned)
 - [ ] Complete Firebase CRUD operations
 - [ ] Implement real-time messaging
 - [ ] Add push notifications
 - [ ] Begin blockchain integration
 
-### Week 3 (Planned)
+### Next 2 Week (Planned)
 - [ ] Complete blockchain integration
 - [ ] Implement gift system
 - [ ] Add comprehensive testing
