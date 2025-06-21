@@ -7,6 +7,8 @@ import {
 } from "@burnt-labs/abstraxion-react-native";
 import type { ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 
+import {auth} from '@/firebaseConfig';
+
 if (!process.env.EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS) {
   throw new Error("EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS is not set in your environment file");
 }
@@ -19,6 +21,29 @@ type QueryResult = {
   value?: string;
   map?: Array<[string, string]>;
 };
+type User = {
+  email: string;
+  password: string;
+  account: string;
+};
+type SignInUser = {
+  email: string;
+  password: string;
+};
+
+const currentUser = auth.currentUser;
+const loggedUser: User = {
+  email: '',
+  password: '',
+  account: '',
+};
+/*
+if(currentUser != null){
+  console.log(currentUser);
+  loggedUser.email = currentUser.email || '';  
+};
+*/
+
 
 // Add retry utility function
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -44,12 +69,29 @@ const retryOperation = async function<T>(
   
   throw lastError;
 };
-
+/*
+try {
+  const docRef = await addDoc(collection(db, "users"), {
+    first: "Ada",
+    last: "Lovelace",
+    born: 1815
+  });
+  console.log("Document written with ID: ", docRef.id);
+} catch (e) {
+  console.error("Error adding document: ", e);
+}
+const querySnapshot = await getDocs(collection(db, "users"));
+querySnapshot.forEach((doc) => {
+  console.log(`${doc.id} => ${doc.data()}`);
+});
+*/
 export default function Index() {
   // Abstraxion hooks
   const { data: account, logout, login, isConnected, isConnecting } = useAbstraxionAccount();
   const { client, signArb } = useAbstraxionSigningClient();
   const { client: queryClient } = useAbstraxionClient();
+  loggedUser.account = account?.bech32Address;
+  console.log(currentUser);
 
   // State variables
   const [loading, setLoading] = useState(false);

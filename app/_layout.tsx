@@ -11,6 +11,7 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 
+
 import { AbstraxionProvider } from "@burnt-labs/abstraxion-react-native";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
@@ -51,7 +52,7 @@ export default function RootLayout() {
     <AbstraxionProvider config={treasuryConfig}>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)" options={{ headerShown: true }} />
           <Stack.Screen name="+not-found" />
         </Stack>
         <StatusBar style="auto" />

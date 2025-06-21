@@ -10,7 +10,19 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npm install
    ```
 
-2. Start the app
+2. Set up environment variables
+
+   Copy the example environment file and configure your Firebase and XION settings:
+   
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Then edit `.env` and replace the placeholder values with your actual:
+   - Firebase configuration (from Firebase Console > Project Settings > General > Your apps)
+   - XION blockchain endpoints and contract addresses
+
+3. Start the app
 
    ```bash
     npx expo start
