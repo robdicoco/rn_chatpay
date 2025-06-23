@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { LogOut, ChevronRight, Shield, CreditCard, Bell, Globe, HelpCircle, Settings } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { useThemeColors } from '@/constants/colors';
+import { useThemeColors } from '@/constants/Colors';
 import { useAuthStore } from '@/store/auth-store';
 import WalletHashDisplay from '@/components/WalletHashDisplay';
 

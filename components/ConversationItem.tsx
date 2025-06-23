@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Conversation } from '@/mocks/messages';
 import { contacts, currentUser } from '@/mocks/users';
 import Avatar from './Avatar';
-import { useThemeColors } from '@/constants/colors';
+import { useThemeColors } from '@/constants/Colors';
 
 interface ConversationItemProps {
   conversation: Conversation;

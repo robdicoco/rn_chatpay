@@ -7,7 +7,7 @@ import { Stack } from "expo-router";
 import { Platform, StatusBar, useColorScheme } from "react-native";
 import { ErrorBoundary } from "./error-boundary";
 import { useThemeStore } from "@/store/theme-store";
-import { useThemeColors } from "@/constants/colors";
+import { useThemeColors } from "@/constants/Colors";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 
 import { AbstraxionProvider } from "@burnt-labs/abstraxion-react-native";
@@ -15,7 +15,7 @@ import { AbstraxionProvider } from "@burnt-labs/abstraxion-react-native";
 
 import { Buffer } from "buffer";
 import crypto from "react-native-quick-crypto";
-global.crypto = crypto;
+//global.crypto = crypto;
 global.Buffer = Buffer;
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.

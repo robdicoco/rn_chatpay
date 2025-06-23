@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform, Alert } from 'react
 import { Copy, Check } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
-import { useThemeColors } from '@/constants/colors';
+import { useThemeColors } from '@/constants/Colors';
 
 interface WalletHashDisplayProps {
   hash: string;

@@ -12,7 +12,7 @@ import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FirebaseService, FirebaseUser } from '@/services/firebase';
 import { currentUser, contacts } from '@/mocks/users';
-import { useThemeColors } from '@/constants/colors';
+import { useThemeColors } from '@/constants/Colors';
 
 export default function FirebaseTestScreen() {
   const [users, setUsers] = useState<FirebaseUser[]>([]);

@@ -15,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import Avatar from '@/components/Avatar';
 import Button from '@/components/Button';
-import { useThemeColors } from '@/constants/colors';
+import { useThemeColors } from '@/constants/Colors';
 import { contacts } from '@/mocks/users';
 import { useTransactionStore } from '@/store/transaction-store';
 import { useChatStore } from '@/store/chat-store';

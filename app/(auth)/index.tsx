@@ -5,7 +5,7 @@ import Clipboard from '@react-native-clipboard/clipboard';
 import { router } from 'expo-router';
 import Button from '@/components/Button';
 import TouchableButton from '@/components/TouchableButton';
-import { useThemeColors } from '@/constants/colors';
+import { useThemeColors } from '@/constants/Colors';
 import { useAuthStore } from '@/store/auth-store';
 import {
   useAbstraxionAccount,

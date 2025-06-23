@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
-import colors from '@/constants/colors';
+import colors from '@/constants/Colors';
 
 interface AvatarProps {
   uri: string;

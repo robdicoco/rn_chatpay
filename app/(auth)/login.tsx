@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
-import { useThemeColors } from '@/constants/colors';
+import { useThemeColors } from '@/constants/Colors';
 import { useAuthStore } from '@/store/auth-store';
 
 export default function LoginScreen() {

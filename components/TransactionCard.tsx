@@ -4,7 +4,7 @@ import { ArrowUpRight, ArrowDownLeft, Clock } from 'lucide-react-native';
 import { Transaction } from '@/mocks/transactions';
 import { contacts, currentUser } from '@/mocks/users';
 import Avatar from './Avatar';
-import { useThemeColors } from '@/constants/colors';
+import { useThemeColors } from '@/constants/Colors';
 
 interface TransactionCardProps {
   transaction: Transaction;
