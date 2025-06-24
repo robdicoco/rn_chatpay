@@ -9,6 +9,9 @@ import { ErrorBoundary } from "./error-boundary";
 import { useThemeStore } from "@/store/theme-store";
 import { useThemeColors } from "@/constants/Colors";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { AppState } from "react-native";
+import { auth } from "@/firebaseConfig";
+import { signOut } from "firebase/auth";
 
 
 import { Buffer } from "buffer";
@@ -45,6 +48,17 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
+ /*  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      if (nextAppState === "background" || nextAppState === "inactive") {
+        signOut(auth).catch((err) => {
+          // Optionally handle sign out error
+          console.warn("Sign out on app close error:", err);
+        });
+      }
+    });
+    return () => subscription.remove();
+  }, []); */
   if (!loaded) {
     return null;
   }
