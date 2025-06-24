@@ -2,6 +2,11 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { currentUser } from '@/mocks/users';
+import {auth} from '@/firebaseConfig';
+import { getAuth, createUserWithEmailAndPassword ,signInWithEmailAndPassword } from "firebase/auth";
+import { FirebaseError } from "firebase/app";
+import { router } from 'expo-router';
+
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -12,8 +17,10 @@ interface AuthState {
   logout: () => void;
   signup: (name: string, email: string, password: string) => Promise<void>;
 }
-
+let errorMessage: string | null = null ;
+let newUser: typeof currentUser | null;
 export const useAuthStore = create<AuthState>()(
+  
   persist(
     (set) => ({
       isAuthenticated: false,
@@ -21,13 +28,34 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       error: null,
       login: async (email, password) => {
+        let errorMessage = null;
         set({ isLoading: true, error: null });
         try {
-          // Simulate API call
-          await new Promise(resolve => setTimeout(resolve, 1000));
+           await signInWithEmailAndPassword(auth, email, password)
+          .then((userCredential) => {
+           
+             currentUser.id = userCredential.user.uid;
+             currentUser.email = userCredential.user.email || "";
+             currentUser.name = userCredential.user.displayName || "";  
+             console.log("Success..." + currentUser.name);          
+        
+         
+            // ...
+          })
+          .catch((error) => {
+            const errorCode = error.code as FirebaseError;
+            errorMessage = error.message ;
+            alert("Signin error " + errorMessage);
+            // ..
+          });
+
+           if (errorMessage == null) {
+             set({ isAuthenticated: true, user: { ...currentUser }, isLoading: false });
+                router.replace("/(tabs)");
+                
+              }
           
-          // For demo purposes, any email/password combination works
-          set({ isAuthenticated: true, user: currentUser, isLoading: false });
+         
         } catch (error) {
           set({ 
             error: error instanceof Error ? error.message : 'Login failed', 
@@ -39,20 +67,47 @@ export const useAuthStore = create<AuthState>()(
         set({ isAuthenticated: false, user: null });
       },
       signup: async (name, email, password) => {
-        set({ isLoading: true, error: null });
-        try {
-          // Simulate API call
-          await new Promise(resolve => setTimeout(resolve, 1000));
+        let errorMessage = null;
+         set({ isLoading: true, error: null });
+        try {              
+          await createUserWithEmailAndPassword(auth, email, password)
+            .then((userCredential) => {
+              // Signed up
+              const user = userCredential.user;
+              console.log(user);
+              // For demo purposes, create a new user based on the mock
+                newUser = { ...currentUser, name, email };
+          //set({ isAuthenticated: true, user: newUser, isLoading: false }); 
+              // router.replace("/(tabs)");
+              
+              // ...
+            })
+            .catch((error) => {
+              const errorCode = error.code as FirebaseError;
+              errorMessage = error.message;
+              console.log(errorMessage);
+              alert("Registration failed: " + errorMessage);
+              set({ isLoading: false, error: errorMessage });
+              // ..
+            });
+           // console.log("Out first catch=== " +errorMessage);
+
+            if (errorMessage == null) {
+               set({ isAuthenticated: true, user: newUser, isLoading: false });
+                router.replace("/(tabs)");
+              } 
+                
           
-          // For demo purposes, create a new user based on the mock
-          const newUser = { ...currentUser, name, email };
-          set({ isAuthenticated: true, user: newUser, isLoading: false });
         } catch (error) {
           set({ 
             error: error instanceof Error ? error.message : 'Signup failed', 
             isLoading: false 
           });
         }
+        /*  console.log("Out second catch=== " +errorMessage);
+        if (errorMessage == null) {
+                router.replace("/(tabs)");
+              }  */
       },
     }),
     {

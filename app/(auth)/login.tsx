@@ -15,6 +15,7 @@ export default function LoginScreen() {
   
   const { login, isLoading } = useAuthStore();
   const colors = useThemeColors();
+  let isLoadingNow = false;
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -39,13 +40,15 @@ export default function LoginScreen() {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
+    isLoadingNow = true;
     
     if (validateForm()) {
       try {
         await login(email, password);
-        router.replace('/(tabs)');
+       
       } catch (error) {
         console.error('Login error:', error);
+        isLoadingNow = false;
       }
     }
   };
@@ -115,7 +118,7 @@ export default function LoginScreen() {
             gradient
             size="large"
             style={styles.button}
-            isLoading={isLoading}
+            isLoading={isLoadingNow}
           />
         </View>
         

@@ -7,8 +7,10 @@ import Input from '@/components/Input';
 import Button from '@/components/Button';
 import { useThemeColors } from '@/constants/Colors';
 import { useAuthStore } from '@/store/auth-store';
-import { FirebaseService } from '@/services/firebase';
+//import { FirebaseService } from '@/services/firebase';
 import { useAbstraxionAccount } from "@burnt-labs/abstraxion-react-native";
+
+let isLoadingNow = false;
 
 export default function SignupScreen() {
   const [name, setName] = useState('');
@@ -83,8 +85,7 @@ export default function SignupScreen() {
           walletHash: account.bech32Address,
           xionWalletHash: account.bech32Address,
         };
-
-        await FirebaseService.createUser(userData);
+        isLoadingNow = true;
         
         // Update auth store
         await signup(name, email, password);
@@ -162,7 +163,7 @@ export default function SignupScreen() {
             gradient
             size="large"
             style={styles.button}
-            isLoading={isLoading}
+            isLoading={isLoadingNow}
           />
         </View>
         
