@@ -9,13 +9,17 @@ import { useThemeColors } from '@/constants/Colors';
 import { useAuthStore } from '@/store/auth-store';
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
+  let [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   
-  const { login, isLoading } = useAuthStore();
+  const { login, isLoading, user, forgotPassword } = useAuthStore();
+
+
   const colors = useThemeColors();
   let isLoadingNow = false;
+
+  if(user?.email != null)  email = user.email;
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -48,6 +52,19 @@ export default function LoginScreen() {
        
       } catch (error) {
         console.error('Login error:', error);
+        isLoadingNow = false;
+      }
+    }
+  };
+  const handleForgotPassword = async () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    if (validateForm()) {
+      try {
+        await forgotPassword(email);
+      } catch (error) {
+        console.error('Forgot password error:', error);
         isLoadingNow = false;
       }
     }
@@ -108,8 +125,8 @@ export default function LoginScreen() {
             error={errors.password}
           />
           
-          <TouchableOpacity style={styles.forgotPassword}>
-            <Text style={[styles.forgotPasswordText, { color: colors.secondary }]}>Forgot Password?</Text>
+          <TouchableOpacity style={styles.forgotPassword} onPress={handleForgotPassword}>
+            <Text style={[styles.forgotPasswordText, { color: colors.secondary }]}>Forgot Password?</Text>           
           </TouchableOpacity>
           
           <Button
@@ -122,7 +139,7 @@ export default function LoginScreen() {
           />
         </View>
         
-        <View style={styles.socialContainer}>
+       {/*  <View style={styles.socialContainer}>
           <View style={styles.dividerContainer}>
             <View style={[styles.divider, { backgroundColor: colors.border }]} />
             <Text style={[styles.dividerText, { color: colors.textSecondary }]}>Or continue with</Text>
@@ -154,7 +171,7 @@ export default function LoginScreen() {
               <Text style={[styles.socialButtonText, { color: colors.textPrimary }]}>Facebook</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </View> */}
         
         <View style={styles.footerContainer}>
           <Text style={[styles.footerText, { color: colors.textSecondary }]}>Don't have an account?</Text>

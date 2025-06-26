@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { currentUser } from '@/mocks/users';
 import {auth} from '@/firebaseConfig';
-import { getAuth, createUserWithEmailAndPassword ,signInWithEmailAndPassword } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword ,signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { FirebaseError } from "firebase/app";
 import { router } from 'expo-router';
 
@@ -16,6 +16,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   signup: (name: string, email: string, password: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
 }
 let errorMessage: string | null = null ;
 let newUser: typeof currentUser | null;
@@ -108,6 +109,32 @@ export const useAuthStore = create<AuthState>()(
         if (errorMessage == null) {
                 router.replace("/(tabs)");
               }  */
+      },
+      forgotPassword: async (email) => {
+        let errorMessage = null;
+        set({ isLoading: true, error: null });
+        try {
+          await sendPasswordResetEmail(auth ,email)
+            .then(() => {
+              // Password reset email sent!
+              // ..
+              alert("Password reset email sent!");
+            })
+            .catch((error) => {
+              const errorCode = error.code as FirebaseError;
+              errorMessage = error.message;
+              console.log(errorMessage);
+              alert("Password reset email failed: " + errorMessage);
+              set({ isLoading: false, error: errorMessage });
+              // ..
+            });
+
+        } catch (error) {
+          set({ 
+            error: error instanceof Error ? error.message : 'Password reset failed', 
+            isLoading: false 
+          });
+        }
       },
     }),
     {

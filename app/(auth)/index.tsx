@@ -12,16 +12,17 @@ import { currentUser } from '@/mocks/users';
 
 
 export default function WelcomeScreen() {
-  console.log('auth', currentUser);
+  
   const authe = getAuth();
   
   const { isAuthenticated, user } = useAuthStore();
   console.log("Current user " + user?.email);
+  console.log('auth', isAuthenticated);
   const colors = useThemeColors();
 
   useEffect(() => {
     if (isAuthenticated) {
-      //router.replace('/(xion)');
+      router.replace('/(auth)/login');
     }
   }, [isAuthenticated]);
 
