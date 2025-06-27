@@ -92,7 +92,7 @@ export default function Index() {
 
   if(loggedUser.account != null){
     // TODO save user data to firestore
-    //router.replace("/(tabs)");
+    router.replace("/(tabs)");
   } 
 
   // State variables
