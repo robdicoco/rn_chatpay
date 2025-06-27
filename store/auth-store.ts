@@ -52,7 +52,7 @@ export const useAuthStore = create<AuthState>()(
 
            if (errorMessage == null) {
              set({ isAuthenticated: true, user: { ...currentUser }, isLoading: false });
-                router.replace("/(tabs)");
+                router.replace("/(xion)");
                 
               }
           
@@ -95,7 +95,7 @@ export const useAuthStore = create<AuthState>()(
 
             if (errorMessage == null) {
                set({ isAuthenticated: true, user: newUser, isLoading: false });
-                router.replace("/(tabs)");
+                router.replace("/(xion)");
               } 
                 
           

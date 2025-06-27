@@ -8,7 +8,10 @@ import {
 import type { ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { router } from 'expo-router';
 
-import {auth} from '@/firebaseConfig';
+import {auth, db} from '@/firebaseConfig';
+import { collection, addDoc, getDocs, query, where } from "firebase/firestore"; 
+import { getAuth } from "firebase/auth";
+
 
 if (!process.env.EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS) {
   throw new Error("EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS is not set in your environment file");
@@ -85,9 +88,12 @@ export default function Index() {
   const { client, signArb } = useAbstraxionSigningClient();
   const { client: queryClient } = useAbstraxionClient();
   loggedUser.account = account?.bech32Address;
-  console.log(currentUser);
+  console.log(currentUser + "account: " + loggedUser.account);
 
-  if(loggedUser.account != null) router.replace("/(tabs)");
+  if(loggedUser.account != null){
+    // TODO save user data to firestore
+    //router.replace("/(tabs)");
+  } 
 
   // State variables
   const [loading, setLoading] = useState(false);
