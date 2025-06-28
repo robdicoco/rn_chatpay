@@ -5,7 +5,7 @@ import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { Heart, ExternalLink, Globe, Calendar, Users, MapPin } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useThemeColors } from '@/constants/Colors';
+import { useThemeColors } from '@/constants/colors';
 import Button from '@/components/Button';
 import { organizations } from '@/mocks/organizations';
 

@@ -7,7 +7,7 @@ import {
   useAbstraxionClient,
 } from "@burnt-labs/abstraxion-react-native";
 
-import { useThemeColors } from '@/constants/Colors';
+import { useThemeColors } from '@/constants/colors';
 import { useAuthStore } from '@/store/auth-store';
 
 import type { ExecuteResult } from "@cosmjs/cosmwasm-stargate";

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { Heart } from 'lucide-react-native';
 import { router } from 'expo-router';
-import { useThemeColors } from '@/constants/Colors';
+import { useThemeColors } from '@/constants/colors';
 import { Organization } from '@/mocks/organizations';
 
 interface OrganizationCardProps {

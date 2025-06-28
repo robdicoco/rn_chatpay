@@ -15,7 +15,7 @@ import { Send, DollarSign } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import MessageBubble from '@/components/MessageBubble';
 import Avatar from '@/components/Avatar';
-import { useThemeColors } from '@/constants/Colors';
+import { useThemeColors } from '@/constants/colors';
 import { useChatStore } from '@/store/chat-store';
 import { contacts, currentUser } from '@/mocks/users';
 

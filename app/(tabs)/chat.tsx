@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'r
 import { router } from 'expo-router';
 import { Search, Plus } from 'lucide-react-native';
 import ConversationItem from '@/components/ConversationItem';
-import { useThemeColors } from '@/constants/Colors';
+import { useThemeColors } from '@/constants/colors';
 import { useChatStore } from '@/store/chat-store';
 
 export default function ChatScreen() {

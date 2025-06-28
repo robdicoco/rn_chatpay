@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import colors from './Colors';
+import colors from './colors';
 
 export default StyleSheet.create({
   largeTitle: {

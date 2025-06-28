@@ -15,7 +15,7 @@ import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import Button from '@/components/Button';
-import { useThemeColors } from '@/constants/Colors';
+import { useThemeColors } from '@/constants/colors';
 import { organizations } from '@/mocks/organizations';
 import { useTransactionStore } from '@/store/transaction-store';
 

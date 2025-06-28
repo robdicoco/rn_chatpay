@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Message } from '@/mocks/messages';
 import { currentUser } from '@/mocks/users';
-import { useThemeColors } from '@/constants/Colors';
+import { useThemeColors } from '@/constants/colors';
 import { LinearGradient } from 'expo-linear-gradient';
 
 interface MessageBubbleProps {

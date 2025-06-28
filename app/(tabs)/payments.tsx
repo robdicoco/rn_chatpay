@@ -5,7 +5,7 @@ import { ArrowUpRight, ArrowDownLeft } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 import TransactionCard from '@/components/TransactionCard';
-import { useThemeColors } from '@/constants/Colors';
+import { useThemeColors } from '@/constants/colors';
 import { useTransactionStore } from '@/store/transaction-store';
 
 export default function PaymentsScreen() {
