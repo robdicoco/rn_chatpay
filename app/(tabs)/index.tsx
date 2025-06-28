@@ -13,7 +13,7 @@ import OrganizationCard from '@/components/OrganizationCard';
 import PaginationDots from '@/components/PaginationDots';
 import ThemeToggle from '@/components/ThemeToggle';
 import WalletHashDisplay from '@/components/WalletHashDisplay';
-import { useThemeColors } from '@/constants/Colors';
+import { useThemeColors } from '@/constants/colors';
 import { useAuthStore } from '@/store/auth-store';
 import { useTransactionStore } from '@/store/transaction-store';
 import { balances } from '@/mocks/balances';

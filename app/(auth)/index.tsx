@@ -1,9 +1,9 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Platform, Alert, Clipboard, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import Button from '@/components/Button';
-import { useThemeColors } from '@/constants/Colors';
+import { useThemeColors } from '@/constants/colors';
 import { useAuthStore } from '@/store/auth-store';
 import { auth } from '@/firebaseConfig';
 import {getAuth} from 'firebase/auth';

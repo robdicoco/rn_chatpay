@@ -4,7 +4,7 @@ import { Sun, Moon } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 import { useThemeStore } from '@/store/theme-store';
-import { useThemeColors } from '@/constants/Colors';
+import { useThemeColors } from '@/constants/colors';
 
 interface ThemeToggleProps {
   size?: number;

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react-native';
-import { useThemeColors } from '@/constants/Colors';
+import { useThemeColors } from '@/constants/colors';
 import { Balance } from '@/mocks/balances';
 
 interface BalanceCardProps {
