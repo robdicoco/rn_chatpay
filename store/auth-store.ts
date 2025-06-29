@@ -38,7 +38,7 @@ export const useAuthStore = create<AuthState>()(
              currentUser.id = userCredential.user.uid;
              currentUser.email = userCredential.user.email || "";
              currentUser.name = userCredential.user.displayName || "";  
-             console.log("Success..." + currentUser.name);          
+             console.log("Success..." + currentUser.email);          
         
          
             // ...
@@ -52,7 +52,7 @@ export const useAuthStore = create<AuthState>()(
 
            if (errorMessage == null) {
              set({ isAuthenticated: true, user: { ...currentUser }, isLoading: false });
-                router.replace("/(xion)");
+                router.replace("/(chain)");
                 
               }
           

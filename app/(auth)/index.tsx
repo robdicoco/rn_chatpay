@@ -5,24 +5,26 @@ import { router } from 'expo-router';
 import Button from '@/components/Button';
 import { useThemeColors } from '@/constants/colors';
 import { useAuthStore } from '@/store/auth-store';
-import { auth } from '@/firebaseConfig';
 import {getAuth} from 'firebase/auth';
-import { currentUser } from '@/mocks/users';
-
-
 
 export default function WelcomeScreen() {
-  
-  const authe = getAuth();
-  
+    
   const { isAuthenticated, user } = useAuthStore();
-  console.log("Current user " + user?.email);
+  console.log("Current user => (auth) Index " + user?.email);
   console.log('auth', isAuthenticated);
   const colors = useThemeColors();
 
+ 
+
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace('/(auth)/login');
+      setTimeout(() => {
+        try {
+          router.replace('/(auth)/login');
+        } catch (error) {
+          console.error('Navigation error:', error);
+        }
+      }, 100);
     }
   }, [isAuthenticated]);
 

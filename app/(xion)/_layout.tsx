@@ -1,20 +1,13 @@
 import "react-native-reanimated";
 import "react-native-get-random-values";
-
-import { useEffect } from "react";
-
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-
-
 import { AbstraxionProvider } from "@burnt-labs/abstraxion-react-native";
-
 import { useColorScheme } from "@/hooks/useColorScheme";
-
 import { Buffer } from "buffer";
-import crypto from "react-native-quick-crypto";
-//global.crypto = crypto;
+
+global.crypto = crypto;
 global.Buffer = Buffer;
 
 
@@ -36,8 +29,8 @@ export default function RootLayout() {
     <AbstraxionProvider config={treasuryConfig}>
       
         <Stack>
-          <Stack.Screen name="(xion)" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="error-boundary" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
      

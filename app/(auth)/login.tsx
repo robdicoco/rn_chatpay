@@ -48,8 +48,7 @@ export default function LoginScreen() {
     
     if (validateForm()) {
       try {
-        await login(email, password);
-       
+        await login(email, password);       
       } catch (error) {
         console.error('Login error:', error);
         isLoadingNow = false;

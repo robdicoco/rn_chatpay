@@ -4,20 +4,12 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
-import { Platform, StatusBar, useColorScheme } from "react-native";
-import { ErrorBoundary } from "./error-boundary";
 import { useThemeStore } from "@/store/theme-store";
-import { useAuthStore } from '@/store/auth-store';
 import { useThemeColors } from "@/constants/colors";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { AppState } from "react-native";
-import { auth } from "@/firebaseConfig";
-import { signOut } from "firebase/auth";
-
-
 import { Buffer } from "buffer";
-import crypto from "react-native-quick-crypto";
-//global.crypto = crypto;
+
+global.crypto = crypto;
 global.Buffer = Buffer;
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -60,13 +52,11 @@ export default function RootLayout() {
     });
     return () => subscription.remove();
   }, []); */
-  if (!loaded) {
-    return null;
-  }
-
   return (
     <Stack>
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} /> 
+      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen name="(xion)" options={{ headerShown: false }} />
+      <Stack.Screen name="+not-found" />
     </Stack>
   );
 }

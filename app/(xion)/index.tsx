@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, Alert, TextInput, ScrollView, Clipboard, Linking } from "react-native";
 import {
   useAbstraxionAccount,
@@ -6,6 +6,7 @@ import {
   useAbstraxionClient,
 } from "@burnt-labs/abstraxion-react-native";
 import type { ExecuteResult } from "@cosmjs/cosmwasm-stargate";
+import { useAuthStore } from '@/store/auth-store';
 import { router } from 'expo-router';
 
 import {auth, db} from '@/firebaseConfig';
@@ -27,19 +28,12 @@ type QueryResult = {
 };
 type User = {
   email: string;
-  password: string;
+  uID: string;
   account: string;
 };
 type SignInUser = {
   email: string;
   password: string;
-};
-
-const currentUser = auth.currentUser;
-const loggedUser: User = {
-  email: '',
-  password: '',
-  account: '',
 };
 
 // Add retry utility function
@@ -83,17 +77,29 @@ querySnapshot.forEach((doc) => {
 });
 */
 export default function Index() {
+  // Auth store hook
+  const { user } = useAuthStore();
+  const firebaseUser = getAuth().currentUser;
+  console.log("Current firebase user: " + firebaseUser?.email);
+  const currentUser = user?.email;
+  const loggedUser: User = {
+    email: currentUser || " ",
+    uID: firebaseUser?.uid || " ",
+    account: '',
+  };
+  
   // Abstraxion hooks
   const { data: account, logout, login, isConnected, isConnecting } = useAbstraxionAccount();
   const { client, signArb } = useAbstraxionSigningClient();
   const { client: queryClient } = useAbstraxionClient();
-  loggedUser.account = account?.bech32Address;
+  
+   loggedUser.account = account?.bech32Address;
   console.log(currentUser + "account: " + loggedUser.account);
 
   if(loggedUser.account != null){
     // TODO save user data to firestore
-    router.replace("/(tabs)");
-  } 
+    //router.replace("/(tabs)");
+  }  
 
   // State variables
   const [loading, setLoading] = useState(false);
@@ -363,7 +369,7 @@ export default function Index() {
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
     >
-      <Text style={styles.title}>User Map Dapp</Text>
+      <Text style={styles.title}>Welcome to XION</Text>
 
       {!isConnected ? (
         <View style={styles.connectButtonContainer}>
@@ -785,3 +791,37 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
 });
+
+/* 
+const saveUserAccount = async (userData: User) => {
+  try {
+    // Check if account already exists
+    const q = query(
+      collection(db, 'users'),
+      where('walletAddress', '==', userData.walletAddress)
+    );
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      console.log('Account already exists');
+      return;
+    }
+
+    // Create new user document
+    const userRef = doc(collection(db, 'users'));
+    await setDoc(userRef, {
+      uid: userRef.id,
+      ...userData,
+      createdAt: serverTimestamp(),
+      accounts: [{
+        accountNumber: userData.walletAddress,
+        balance: 0,
+        currency: 'XION',
+        isPrimary: true
+      }]
+    });
+    console.log('User account created successfully');
+  } catch (error) {
+    console.error('Error saving user account:', error);
+  }
+}; */
