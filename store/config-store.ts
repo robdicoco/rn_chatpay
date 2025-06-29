@@ -23,7 +23,31 @@ export const useConfigStore = create<ConfigState>()(
         if (chain === 'XION') {
           setTimeout(() => {
             try {
-              router.replace('/(xion)');
+              router.push('/(xion)');
+            } catch (error) {
+              console.warn('Navigation failed, router not ready:', error);
+            }
+          }, 100);
+        }else if (chain === 'STELLAR') {
+          setTimeout(() => {
+            try {
+             // router.push('./(stellar)');
+            } catch (error) {
+              console.warn('Navigation failed, router not ready:', error);
+            }
+          }, 100);
+        }else if (chain === 'TON') {
+          setTimeout(() => {
+            try {
+              //router.push('./(ton)');
+            } catch (error) {
+              console.warn('Navigation failed, router not ready:', error);
+            }
+          }, 100);
+        }else if (chain === 'STARKNET') {
+          setTimeout(() => {
+            try {
+              //router.push('./(starknet)');
             } catch (error) {
               console.warn('Navigation failed, router not ready:', error);
             }
@@ -51,4 +75,5 @@ export const useConfigStore = create<ConfigState>()(
       })),
     }
   )
+
 );

@@ -97,10 +97,11 @@ export default function Index() {
   const { client: queryClient } = useAbstraxionClient();
 
   loggedUser.wallets = [{name: userWallet.name, account: account?.bech32Address}];
-  console.log(currentUser + "  account: " + loggedUser.wallets);
+  console.log(currentUser + "  account: " + loggedUser.wallets[0].account);
 
   // Prevent repeated Firestore/auth-store updates by tracking previous account
   const prevAccountRef = useRef<string | undefined>(account?.bech32Address || "");
+  prevAccountRef.current = user?.wallets?.[0]?.account || "";
   console.log("prevAccountRef.current: " + prevAccountRef.current);
   useEffect(() => {
     const currentAccount = account?.bech32Address;
@@ -111,7 +112,7 @@ export default function Index() {
     ) {
       handleUserFirestoreAndAuthStore(loggedUser);
       prevAccountRef.current = currentAccount;
-      router.replace("/(tabs)");
+      //router.replace("/(tabs)");
     }
     // Only run when account.bech32Address changes
   }, [account?.bech32Address]);
@@ -882,7 +883,7 @@ const saveUserAccount = async (userData: User) => {
 // Async function to handle Firestore user query/update and auth-store save
 async function handleUserFirestoreAndAuthStore(loggedUser: User) { 
     const userRef = collection(db, "users");
-    const q = query(userRef, where("uID", "==", loggedUser.id));
+    const q = query(userRef, where("id", "==", loggedUser.id));
     const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
       // Update existing user document
@@ -890,16 +891,11 @@ async function handleUserFirestoreAndAuthStore(loggedUser: User) {
       const docRef = doc(userRef, docId);
       await updateDoc(docRef, {
         ...loggedUser,
-        updatedAt: new Date()
-      });
-    } else {
-      // Create new user document
-      await addDoc(userRef, {
-        ...loggedUser,
         createdAt: new Date()
       });
     }
     // Save to auth-store
     useAuthStore.setState({ user: loggedUser, isAuthenticated: true });
-    console.log('User account updated successfully ' + loggedUser?.wallets?.[0]?.account);    
+    console.log('User account updated successfully ' + loggedUser?.wallets?.[0]?.account); 
+    router.push('/(tabs)');
 }
