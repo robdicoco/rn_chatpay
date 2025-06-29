@@ -93,8 +93,8 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {user?.walletHash && (
-        <WalletHashDisplay hash={user.walletHash} />
+      {user?.wallets?.[0]?.account && (
+        <WalletHashDisplay hash={user.wallets?.[0]?.account} />
       )}
 
       <View style={styles.balanceCarouselContainer}>

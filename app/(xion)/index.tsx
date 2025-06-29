@@ -1,21 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Alert, TextInput, ScrollView, Clipboard, Linking } from "react-native";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  View,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  Alert,
+  TextInput,
+  ScrollView,
+  Clipboard,
+  Linking,
+} from "react-native";
 import {
   useAbstraxionAccount,
   useAbstraxionSigningClient,
   useAbstraxionClient,
 } from "@burnt-labs/abstraxion-react-native";
 import type { ExecuteResult } from "@cosmjs/cosmwasm-stargate";
-import { useAuthStore } from '@/store/auth-store';
-import { router } from 'expo-router';
+import { useAuthStore } from "@/store/auth-store";
+import { router } from "expo-router";
 
-import {auth, db} from '@/firebaseConfig';
-import { collection, addDoc, getDocs, query, where } from "firebase/firestore"; 
+import { auth, db } from "@/firebaseConfig";
+import { collection, addDoc, getDocs, query, where, doc, setDoc, updateDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-
+import { User, Chain } from '@/mocks/users';
 
 if (!process.env.EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS) {
-  throw new Error("EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS is not set in your environment file");
+  throw new Error(
+    "EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS is not set in your environment file"
+  );
 }
 
 const CONTRACT_ADDRESS = process.env.EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS;
@@ -26,26 +38,23 @@ type QueryResult = {
   value?: string;
   map?: Array<[string, string]>;
 };
-type User = {
-  email: string;
-  uID: string;
-  account: string;
-};
+
 type SignInUser = {
   email: string;
   password: string;
 };
 
 // Add retry utility function
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-const retryOperation = async function<T>(
+const retryOperation = async function <T>(
   operation: () => Promise<T>,
   maxRetries = 3,
   delay = 1000
 ): Promise<T> {
   let lastError: Error | null = null;
-  
+
   for (let i = 0; i < maxRetries; i++) {
     try {
       return await operation();
@@ -57,60 +66,67 @@ const retryOperation = async function<T>(
       }
     }
   }
-  
+
   throw lastError;
 };
-/*
-try {
-  const docRef = await addDoc(collection(db, "users"), {
-    first: "Ada",
-    last: "Lovelace",
-    born: 1815
-  });
-  console.log("Document written with ID: ", docRef.id);
-} catch (e) {
-  console.error("Error adding document: ", e);
-}
-const querySnapshot = await getDocs(collection(db, "users"));
-querySnapshot.forEach((doc) => {
-  console.log(`${doc.id} => ${doc.data()}`);
-});
-*/
+
 export default function Index() {
   // Auth store hook
   const { user } = useAuthStore();
   const firebaseUser = getAuth().currentUser;
-  console.log("Current firebase user: " + firebaseUser?.email);
+  console.log("Current firebase user: " + firebaseUser?.uid);
+  const [userWallet, setUserWallet] = useState<Chain>({name: "XION", account: " "});
+  const [userName, setUserName] = useState<string>("");
+  // setUserWallet({name: "XION", account: " "}); // Removed to prevent infinite re-render
   const currentUser = user?.email;
   const loggedUser: User = {
     email: currentUser || " ",
-    uID: firebaseUser?.uid || " ",
-    account: '',
+    id: firebaseUser?.uid || " ",
+    wallets: [{name: userWallet.name, account: userWallet.account}],
   };
-  
+
   // Abstraxion hooks
-  const { data: account, logout, login, isConnected, isConnecting } = useAbstraxionAccount();
+  const {
+    data: account,
+    logout,
+    login,
+    isConnected,
+    isConnecting,
+  } = useAbstraxionAccount();
   const { client, signArb } = useAbstraxionSigningClient();
   const { client: queryClient } = useAbstraxionClient();
-  
-   loggedUser.account = account?.bech32Address;
-  console.log(currentUser + "account: " + loggedUser.account);
 
-  if(loggedUser.account != null){
-    // TODO save user data to firestore
-    //router.replace("/(tabs)");
-  }  
+  loggedUser.wallets = [{name: userWallet.name, account: account?.bech32Address}];
+  console.log(currentUser + "  account: " + loggedUser.wallets);
 
+  // Prevent repeated Firestore/auth-store updates by tracking previous account
+  const prevAccountRef = useRef<string | undefined>(account?.bech32Address || "");
+  console.log("prevAccountRef.current: " + prevAccountRef.current);
+  useEffect(() => {
+    const currentAccount = account?.bech32Address;
+    if (
+      currentAccount != null &&
+      currentAccount !== " " &&
+      prevAccountRef.current !== currentAccount
+    ) {
+      handleUserFirestoreAndAuthStore(loggedUser);
+      prevAccountRef.current = currentAccount;
+      router.replace("/(tabs)");
+    }
+    // Only run when account.bech32Address changes
+  }, [account?.bech32Address]);
   // State variables
   const [loading, setLoading] = useState(false);
   const [isOperationInProgress, setIsOperationInProgress] = useState(false);
   const [isTransactionPending, setIsTransactionPending] = useState(false);
-  const [executeResult, setExecuteResult] = useState<ExecuteResultOrUndefined>(undefined);
+  const [executeResult, setExecuteResult] =
+    useState<ExecuteResultOrUndefined>(undefined);
   const [queryResult, setQueryResult] = useState<QueryResult>({});
   const [jsonInput, setJsonInput] = useState<string>("");
   const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [jsonError, setJsonError] = useState<string>("");
-  const [showValueByUserForm, setShowValueByUserForm] = useState<boolean>(false);
+  const [showValueByUserForm, setShowValueByUserForm] =
+    useState<boolean>(false);
   const [showUpdateJsonForm, setShowUpdateJsonForm] = useState<boolean>(true);
   const [addressInput, setAddressInput] = useState<string>("");
   const [activeView, setActiveView] = useState<string>("updateJson");
@@ -123,21 +139,22 @@ export default function Index() {
         try {
           const response = await retryOperation(async () => {
             return await queryClient.queryContractSmart(CONTRACT_ADDRESS, {
-              get_value_by_user: { 
-                address: account.bech32Address 
-              }
+              get_value_by_user: {
+                address: account.bech32Address,
+              },
             });
           });
-          
-          if (response && typeof response === 'string') {
+
+          if (response && typeof response === "string") {
             setJsonInput(response);
           } else {
             console.log("No existing data found for user");
             setJsonInput("{}");
           }
         } catch (error) {
-          console.error("Error fetching user data:", error);
-          const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+          console.error("Error fetching user??? data:", error);
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error occurred";
           Alert.alert(
             "Error",
             `Failed to fetch user data: ${errorMessage}. Please check your network connection and try again.`
@@ -147,7 +164,7 @@ export default function Index() {
       }
     };
 
-    fetchUserData();
+    // fetchUserData();
   }, [account?.bech32Address, queryClient]);
 
   // Add effect to fetch balance
@@ -155,7 +172,10 @@ export default function Index() {
     const fetchBalance = async () => {
       if (account?.bech32Address && queryClient) {
         try {
-          const response = await queryClient.getBalance(account.bech32Address, "uxion");
+          const response = await queryClient.getBalance(
+            account.bech32Address,
+            "uxion"
+          );
           setBalance(response.amount);
         } catch (error) {
           console.error("Error fetching balance:", error);
@@ -163,7 +183,7 @@ export default function Index() {
       }
     };
 
-    fetchBalance();
+    // fetchBalance();
   }, [account?.bech32Address, queryClient]);
 
   const clearResults = () => {
@@ -190,7 +210,9 @@ export default function Index() {
     setShowValueByUserForm(false);
     try {
       if (!queryClient) throw new Error("Query client is not defined");
-      const response = await queryClient.queryContractSmart(CONTRACT_ADDRESS, { get_users: {} });
+      const response = await queryClient.queryContractSmart(CONTRACT_ADDRESS, {
+        get_users: {},
+      });
       setQueryResult({ users: response });
     } catch (error) {
       Alert.alert("Error", "Error querying users");
@@ -209,7 +231,9 @@ export default function Index() {
     setShowValueByUserForm(false);
     try {
       if (!queryClient) throw new Error("Query client is not defined");
-      const response = await queryClient.queryContractSmart(CONTRACT_ADDRESS, { get_map: {} });
+      const response = await queryClient.queryContractSmart(CONTRACT_ADDRESS, {
+        get_map: {},
+      });
       setQueryResult({ map: response });
     } catch (error) {
       Alert.alert("Error", "Error querying map");
@@ -228,8 +252,8 @@ export default function Index() {
     setShowValueByUserForm(false);
     try {
       if (!queryClient) throw new Error("Query client is not defined");
-      const response = await queryClient.queryContractSmart(CONTRACT_ADDRESS, { 
-        get_value_by_user: { address } 
+      const response = await queryClient.queryContractSmart(CONTRACT_ADDRESS, {
+        get_value_by_user: { address },
       });
       setQueryResult({ value: response });
       setSelectedAddress(address);
@@ -277,21 +301,26 @@ export default function Index() {
     setIsTransactionPending(true);
     try {
       if (!client || !account) throw new Error("Client or account not defined");
-      
+
       // Check balance before proceeding
-      const currentBalance = await queryClient?.getBalance(account.bech32Address, "uxion");
+      const currentBalance = await queryClient?.getBalance(
+        account.bech32Address,
+        "uxion"
+      );
       if (!currentBalance || Number(currentBalance.amount) < 184) {
         Alert.alert(
           "Insufficient Funds",
-          `You need at least 0.000184 XION to execute this transaction.\nYour current balance: ${Number(currentBalance?.amount || 0) / 1000000} XION`
+          `You need at least 0.000184 XION to execute this transaction.\nYour current balance: ${
+            Number(currentBalance?.amount || 0) / 1000000
+          } XION`
         );
         return;
       }
 
       const msg = {
         update: {
-          value: jsonInput
-        }
+          value: jsonInput,
+        },
       };
 
       // Execute with retry
@@ -303,34 +332,35 @@ export default function Index() {
           "auto"
         );
       });
-      
+
       setExecuteResult(res);
       console.log("Transaction successful:", res);
-      
+
       // Show success confirmation
       Alert.alert(
         "Success",
         "Your JSON data has been successfully updated on the blockchain.",
         [{ text: "OK" }]
       );
-      
+
       // Refresh data with retry
       const updatedData = await retryOperation(async () => {
         if (!queryClient) throw new Error("Query client not available");
         return await queryClient.queryContractSmart(CONTRACT_ADDRESS, {
-          get_value_by_user: { 
-            address: account.bech32Address 
-          }
+          get_value_by_user: {
+            address: account.bech32Address,
+          },
         });
       });
-      
-      if (updatedData && typeof updatedData === 'string') {
+
+      if (updatedData && typeof updatedData === "string") {
         setJsonInput(updatedData);
       }
     } catch (error) {
       console.error("Error executing transaction:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+
       // Handle specific error cases
       if (errorMessage.includes("insufficient funds")) {
         Alert.alert(
@@ -365,7 +395,7 @@ export default function Index() {
   };
 
   return (
-    <ScrollView 
+    <ScrollView
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
     >
@@ -375,7 +405,11 @@ export default function Index() {
         <View style={styles.connectButtonContainer}>
           <TouchableOpacity
             onPress={login}
-            style={[styles.menuButton, styles.fullWidthButton, isConnecting && styles.disabledButton]}
+            style={[
+              styles.menuButton,
+              styles.fullWidthButton,
+              isConnecting && styles.disabledButton,
+            ]}
             disabled={isConnecting}
           >
             <Text style={styles.buttonText}>
@@ -389,11 +423,18 @@ export default function Index() {
           <View style={styles.accountInfoContainer}>
             <Text style={styles.accountLabel}>Connected Account:</Text>
             <View style={styles.addressContainer}>
-              <Text style={styles.addressText} numberOfLines={1} ellipsizeMode="middle">
+              <Text
+                style={styles.addressText}
+                numberOfLines={1}
+                ellipsizeMode="middle"
+              >
                 {account?.bech32Address}
               </Text>
               <TouchableOpacity
-                onPress={() => account?.bech32Address && copyToClipboard(account.bech32Address)}
+                onPress={() =>
+                  account?.bech32Address &&
+                  copyToClipboard(account.bech32Address)
+                }
                 style={styles.copyButton}
               >
                 <Text style={styles.copyButtonText}>Copy</Text>
@@ -401,7 +442,12 @@ export default function Index() {
             </View>
             <TouchableOpacity
               onPress={logout}
-              style={[styles.menuButton, styles.logoutButton, styles.fullWidthButton, (loading || isOperationInProgress) && styles.disabledButton]}
+              style={[
+                styles.menuButton,
+                styles.logoutButton,
+                styles.fullWidthButton,
+                (loading || isOperationInProgress) && styles.disabledButton,
+              ]}
               disabled={loading || isOperationInProgress}
             >
               <Text style={styles.buttonText}>Logout</Text>
@@ -409,7 +455,7 @@ export default function Index() {
           </View>
 
           {/* Row 2: Menu Buttons */}
-          <View style={styles.menuContainer}>
+          {/*  <View style={styles.menuContainer}>
             <TouchableOpacity
               onPress={getUsers}
               style={[styles.menuButton, (loading || isOperationInProgress) && styles.disabledButton]}
@@ -451,7 +497,7 @@ export default function Index() {
             >
               <Text style={styles.buttonText}>Update JSON</Text>
             </TouchableOpacity>
-          </View>
+          </View> */}
 
           {/* Row 3: Results */}
           <View style={styles.resultsContainer}>
@@ -467,7 +513,10 @@ export default function Index() {
                 />
                 <TouchableOpacity
                   onPress={() => getValueByUser(addressInput)}
-                  style={[styles.menuButton, (loading || isOperationInProgress) && styles.disabledButton]}
+                  style={[
+                    styles.menuButton,
+                    (loading || isOperationInProgress) && styles.disabledButton,
+                  ]}
                   disabled={loading || isOperationInProgress}
                 >
                   <Text style={styles.buttonText}>Get Value</Text>
@@ -475,7 +524,7 @@ export default function Index() {
               </View>
             )}
 
-            {showUpdateJsonForm && account?.bech32Address && (
+            {/* {showUpdateJsonForm && account?.bech32Address && (
               <View style={styles.formSection}>
                 <TextInput
                   style={[styles.jsonInput, jsonError ? styles.errorInput : null]}
@@ -508,10 +557,10 @@ export default function Index() {
                   </TouchableOpacity>
                 </View>
               </View>
-            )}
+            )} */}
 
             {/* Query Results */}
-            {activeView === "users" && queryResult.users && (
+            {/* {activeView === "users" && queryResult.users && (
               <View style={styles.resultCard}>
                 <Text style={styles.resultTitle}>Users:</Text>
                 {queryResult.users.map((user, index) => (
@@ -529,11 +578,13 @@ export default function Index() {
                   </View>
                 ))}
               </View>
-            )}
+            )} */}
 
             {activeView === "value" && queryResult.value && (
               <View style={styles.resultCard}>
-                <Text style={styles.resultTitle}>Value for {selectedAddress}:</Text>
+                <Text style={styles.resultTitle}>
+                  Value for {selectedAddress}:
+                </Text>
                 <Text style={styles.resultText}>{queryResult.value}</Text>
               </View>
             )}
@@ -561,7 +612,9 @@ export default function Index() {
                 </Text>
                 <TouchableOpacity
                   onPress={() => {
-                    Linking.openURL(`https://www.mintscan.io/xion-testnet/tx/${executeResult.transactionHash}?height=${executeResult.height}`);
+                    Linking.openURL(
+                      `https://www.mintscan.io/xion-testnet/tx/${executeResult.transactionHash}?height=${executeResult.height}`
+                    );
                   }}
                   style={styles.linkButton}
                 >
@@ -637,8 +690,8 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   menuContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
     paddingVertical: 10,
   },
@@ -649,7 +702,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
     minWidth: 120,
-    maxWidth: '48%',
+    maxWidth: "48%",
   },
   buttonText: {
     color: "#fff",
@@ -700,7 +753,7 @@ const styles = StyleSheet.create({
   },
   buttonRow: {
     flexDirection: "row",
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
     gap: 10,
   },
   resultCard: {
@@ -764,31 +817,31 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   connectButtonContainer: {
-    width: '100%',
+    width: "100%",
     paddingHorizontal: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
   fullWidthButton: {
-    width: '100%',
-    maxWidth: '100%',
+    width: "100%",
+    maxWidth: "100%",
   },
   linkButton: {
     marginTop: 10,
     padding: 10,
-    backgroundColor: '#2196F3',
+    backgroundColor: "#2196F3",
     borderRadius: 5,
-    alignItems: 'center',
+    alignItems: "center",
   },
   linkText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   logoutButton: {
     marginTop: 15,
-    backgroundColor: '#dc3545',
-    width: '100%',
-    maxWidth: '100%',
+    backgroundColor: "#dc3545",
+    width: "100%",
+    maxWidth: "100%",
   },
 });
 
@@ -825,3 +878,28 @@ const saveUserAccount = async (userData: User) => {
     console.error('Error saving user account:', error);
   }
 }; */
+
+// Async function to handle Firestore user query/update and auth-store save
+async function handleUserFirestoreAndAuthStore(loggedUser: User) { 
+    const userRef = collection(db, "users");
+    const q = query(userRef, where("uID", "==", loggedUser.id));
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      // Update existing user document
+      const docId = querySnapshot.docs[0].id;
+      const docRef = doc(userRef, docId);
+      await updateDoc(docRef, {
+        ...loggedUser,
+        updatedAt: new Date()
+      });
+    } else {
+      // Create new user document
+      await addDoc(userRef, {
+        ...loggedUser,
+        createdAt: new Date()
+      });
+    }
+    // Save to auth-store
+    useAuthStore.setState({ user: loggedUser, isAuthenticated: true });
+    console.log('User account updated successfully ' + loggedUser?.wallets?.[0]?.account);    
+}

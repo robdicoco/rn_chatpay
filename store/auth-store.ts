@@ -54,7 +54,7 @@ export const useAuthStore = create<AuthState>()(
              set({ isAuthenticated: true, user: { ...currentUser }, isLoading: false });
                 router.replace("/(chain)");
                 
-              }
+           }
           
          
         } catch (error) {

@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import { useAuthStore } from './auth-store';
+
 
 type Blockchain = 'XION' | 'STELLAR' | 'TON' | 'STARKNET';
 
@@ -12,12 +14,13 @@ interface ConfigState {
 
 export const useConfigStore = create<ConfigState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       blockchain: 'XION',
       setBlockchain: (chain) => {
         set({ blockchain: chain });
+        // Move useAuthStore inside a function or use get() if needed
+        // const { user } = useAuthStore(); // Remove this line from top-level
         if (chain === 'XION') {
-          // Use setTimeout to ensure navigation happens after component mount
           setTimeout(() => {
             try {
               router.replace('/(xion)');
@@ -26,10 +29,9 @@ export const useConfigStore = create<ConfigState>()(
             }
           }, 100);
         }
-      },      
+      },
       // ... existing state
     }),
-
     {
       name: 'chain-storage',
       storage: createJSONStorage(() => ({
@@ -48,6 +50,5 @@ export const useConfigStore = create<ConfigState>()(
         }
       })),
     }
-    
   )
 );
