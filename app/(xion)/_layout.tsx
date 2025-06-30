@@ -6,6 +6,8 @@ import { StatusBar } from "expo-status-bar";
 import { AbstraxionProvider } from "@burnt-labs/abstraxion-react-native";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Buffer } from "buffer";
+import crypto from "react-native-quick-crypto";
+
 
 global.crypto = crypto;
 global.Buffer = Buffer;

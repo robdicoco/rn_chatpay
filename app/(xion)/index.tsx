@@ -23,6 +23,10 @@ import { auth, db } from "@/firebaseConfig";
 import { collection, addDoc, getDocs, query, where, doc, setDoc, updateDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { User, Chain } from '@/mocks/users';
+import { Buffer } from "buffer";
+import crypto from "react-native-quick-crypto";
+global.crypto = crypto;
+global.Buffer = Buffer;
 
 if (!process.env.EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS) {
   throw new Error(
