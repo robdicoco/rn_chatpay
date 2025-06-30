@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -7,11 +7,12 @@ import Input from '@/components/Input';
 import Button from '@/components/Button';
 import { useThemeColors } from '@/constants/colors';
 import { useAuthStore } from '@/store/auth-store';
-//import { FirebaseService } from '@/services/firebase';
-import { useAbstraxionAccount } from "@burnt-labs/abstraxion-react-native";
+import { FirebaseError } from 'firebase/app';
 
-let isLoadingNow = false;
 
+// Custom hook to sync Firebase auth with Zustand store
+
+let isLoading = false;
 export default function SignupScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -22,11 +23,13 @@ export default function SignupScreen() {
     email?: string; 
     password?: string;
     confirmPassword?: string;
-  }>({});
+  }>({});  
   
-  const { signup, isLoading } = useAuthStore();
-  const { data: account } = useAbstraxionAccount();
+  let { signup } = useAuthStore();
+  
+  let errorMessage: string | null = null;
   const colors = useThemeColors();
+  
 
   const validateForm = () => {
     const newErrors: { 
@@ -63,43 +66,18 @@ export default function SignupScreen() {
   };
 
   const handleSignup = async () => {
-    if (Platform.OS !== 'web') {
+    if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    
-    if (validateForm()) {
-      try {
-        // Check if user is connected to Xion
-        if (!account?.bech32Address) {
-          Alert.alert('Error', 'Please connect to Xion first before creating an account.');
-          return;
-        }
 
-        // Create user in Firebase
-        const userData = {
-          name,
-          email,
-          avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=387&q=80',
-          phoneNumber: '', // Can be added later
-          isRegistered: true,
-          walletHash: account.bech32Address,
-          xionWalletHash: account.bech32Address,
-        };
-        isLoadingNow = true;
-        
-        // Update auth store
-        await signup(name, email, password);
-        
-        // Navigate to main app
-        router.replace('/(tabs)');
-      } catch (error) {
-        console.error('Signup error:', error);
-        Alert.alert('Error', 'Failed to create account. Please try again.');
-      }
+    if (validateForm()) {
+      signup(name, email, password);         
     }
+    
   };
 
   return (
+    
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -163,7 +141,7 @@ export default function SignupScreen() {
             gradient
             size="large"
             style={styles.button}
-            isLoading={isLoadingNow}
+            isLoading={isLoading}
           />
         </View>
         
@@ -177,7 +155,7 @@ export default function SignupScreen() {
         
         <View style={styles.footerContainer}>
           <Text style={[styles.footerText, { color: colors.textSecondary }]}>Already have an account?</Text>
-          <TouchableOpacity onPress={() => router.push('/login')}>
+          <TouchableOpacity onPress={() => router.push('./login')}>
             <Text style={[styles.loginText, { color: colors.primary }]}>Log In</Text>
           </TouchableOpacity>
         </View>

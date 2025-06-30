@@ -846,40 +846,6 @@ const styles = StyleSheet.create({
   },
 });
 
-/* 
-const saveUserAccount = async (userData: User) => {
-  try {
-    // Check if account already exists
-    const q = query(
-      collection(db, 'users'),
-      where('walletAddress', '==', userData.walletAddress)
-    );
-    const querySnapshot = await getDocs(q);
-
-    if (!querySnapshot.empty) {
-      console.log('Account already exists');
-      return;
-    }
-
-    // Create new user document
-    const userRef = doc(collection(db, 'users'));
-    await setDoc(userRef, {
-      uid: userRef.id,
-      ...userData,
-      createdAt: serverTimestamp(),
-      accounts: [{
-        accountNumber: userData.walletAddress,
-        balance: 0,
-        currency: 'XION',
-        isPrimary: true
-      }]
-    });
-    console.log('User account created successfully');
-  } catch (error) {
-    console.error('Error saving user account:', error);
-  }
-}; */
-
 // Async function to handle Firestore user query/update and auth-store save
 async function handleUserFirestoreAndAuthStore(loggedUser: User) { 
     const userRef = collection(db, "users");
