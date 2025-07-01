@@ -1,3 +1,4 @@
+
 export interface Balance {
   id: string;
   currency: string;
@@ -18,7 +19,8 @@ export const balances: Balance[] = [
     symbol: '$',
     name: 'US Dollar',
     amount: 1250.75,
-    icon: 'https://images.unsplash.com/photo-1580048915913-4f8f5cb481c4?q=80&w=1000&auto=format&fit=crop',
+    icon: require('@/assets/images/usa-flag.png') ,//'https://images.unsplash.com/photo-1580048915913-4f8f5cb481c4?q=80&w=1000&auto=format&fit=crop',
+
   },
   {
     id: 'xion',

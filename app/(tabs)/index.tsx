@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, FlatList, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -16,8 +16,13 @@ import WalletHashDisplay from '@/components/WalletHashDisplay';
 import { useThemeColors } from '@/constants/colors';
 import { useAuthStore } from '@/store/auth-store';
 import { useTransactionStore } from '@/store/transaction-store';
-import { balances } from '@/mocks/balances';
+import { db } from '@/firebaseConfig';
+import { QuerySnapshot } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
+
+import { Balance } from '@/mocks/balances';
 import { organizations } from '@/mocks/organizations';
+import { getAccountBalance } from '../utils/xion_rpc';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = 300;
@@ -28,6 +33,26 @@ export default function HomeScreen() {
   const colors = useThemeColors();
   const [refreshing, setRefreshing] = useState(false);
   const [activeBalanceIndex, setActiveBalanceIndex] = useState(0);
+  const [resolvedBalances, setResolvedBalances] = useState([]);
+  const [balances, setBalances] = useState<Balance[]>([]);
+
+  useEffect(() => {
+    getDocs(collection(db, 'balances')).then((querySnapshot: QuerySnapshot) => {
+      const fetchedBalances: Balance[] = [];
+      querySnapshot.forEach((doc) => {
+        fetchedBalances.push(doc.data() as Balance);
+      });
+      setBalances(fetchedBalances);
+      
+    });
+  }, []); // Only run once on mount
+
+  var myBalance =  getAccountBalance('xion1ydp3wsw4rkgzxsvn0dm34ec0866sdz58mw555xzrl7sg8x8uwuqs7yg5ls');
+  const value = myBalance.then((res) => {
+    console.log('myBalance', res);
+    return res;
+  });
+  
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -100,7 +125,8 @@ export default function HomeScreen() {
       <View style={styles.balanceCarouselContainer}>
         <FlatList
           ref={flatListRef}
-          data={balances}
+          data={balances} // Now using the resolved balances
+
           keyExtractor={(item) => item.id}
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -118,7 +144,7 @@ export default function HomeScreen() {
             />
           )}
         />
-        <PaginationDots total={balances.length} current={activeBalanceIndex} />
+        <PaginationDots total={ balances.length} current={activeBalanceIndex} />
       </View>
 
       <View style={styles.organizationsSection}>
@@ -307,3 +333,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+
+
