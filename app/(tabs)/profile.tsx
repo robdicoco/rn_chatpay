@@ -98,13 +98,15 @@ export default function ProfileScreen() {
         <Text style={[styles.profileName, { color: colors.textPrimary }]}>{user?.name || 'User'}</Text>
         <Text style={[styles.profileEmail, { color: colors.textSecondary }]}>{user?.email || 'user@example.com'}</Text>
         
-        <TouchableOpacity style={[styles.editProfileButton, { backgroundColor: colors.lightGray }]}>
+        <TouchableOpacity 
+          onPress={() => router.push('/(pages)/edit-profile')}
+        style={[styles.editProfileButton, { backgroundColor: colors.lightGray }]}>
           <Text style={[styles.editProfileText, { color: colors.textPrimary }]}>Edit Profile</Text>
         </TouchableOpacity>
       </View>
       
-      {user?.walletHash && (
-        <WalletHashDisplay hash={user.walletHash} />
+      {user?.wallets[0]?.account && (
+        <WalletHashDisplay hash={user.wallets[0].account} />
       )}
       
       <View style={styles.menuContainer}>

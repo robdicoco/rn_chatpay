@@ -17,6 +17,7 @@ interface AuthState {
   logout: () => void;
   signup: (name: string, email: string, password: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
+  updateUser: (user: typeof currentUser) => void;
 }
 let errorMessage: string | null = null ;
 let newUser: typeof currentUser | null;
@@ -52,7 +53,7 @@ export const useAuthStore = create<AuthState>()(
 
            if (errorMessage == null) {
              set({ isAuthenticated: true, user: { ...currentUser }, isLoading: false });
-                router.replace("/(chain)");
+               router.replace("/(xion)");
                 
            }
           
@@ -135,6 +136,9 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false 
           });
         }
+      },
+      updateUser: (user) => {
+        set({ user });
       },
     }),
     {
