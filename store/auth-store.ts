@@ -1,28 +1,59 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { currentUser } from '@/mocks/users';
-import {auth} from '@/firebaseConfig';
-import { getAuth, createUserWithEmailAndPassword ,signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { currentUser, User } from '@/mocks/users';
+import { auth, db } from '@/firebaseConfig';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updateProfile } from "firebase/auth";
 import { FirebaseError } from "firebase/app";
 import { router } from 'expo-router';
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
+// Função utilitária para garantir todos os campos obrigatórios do user
+function buildUserFromFirebase(user: any, extra?: Partial<User>): User {
+  return {
+    id: user.uid || user.id || extra?.id || '',
+    name: user.displayName || user.display_name || extra?.name || '',
+    email: user.email || extra?.email || '',
+    avatar: user.photoURL || user.photo_url || extra?.avatar || '',
+    isRegistered: extra?.isRegistered ?? true,
+    wallets: extra?.wallets || [],
+    contacts: extra?.contacts || [],
+  };
+}
+
+// Função para buscar usuário + contatos do Firestore (ADICIONADO)
+export async function fetchUserFromFirestore(userId: string): Promise<User | null> {
+  try {
+    const userDoc = await getDoc(doc(db, "users", userId));
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      return {
+        ...data,
+        id: userId,
+        avatar: data.avatar || data.photo_url || data.foto || "",
+        contacts: data.contacts || [],
+      } as User;
+    }
+    return null;
+  } catch (error) {
+    console.log("Erro ao buscar usuário do Firestore:", error);
+    return null;
+  }
+}
 
 interface AuthState {
   isAuthenticated: boolean;
-  user: typeof currentUser | null;
+  user: User | null;
   isLoading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   signup: (name: string, email: string, password: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
-  updateUser: (user: typeof currentUser) => void;
+  updateUser: (user: User) => void;
 }
-let errorMessage: string | null = null ;
-let newUser: typeof currentUser | null;
+
 export const useAuthStore = create<AuthState>()(
-  
   persist(
     (set) => ({
       isAuthenticated: false,
@@ -30,115 +61,84 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       error: null,
       login: async (email, password) => {
-        let errorMessage = null;
         set({ isLoading: true, error: null });
         try {
-           await signInWithEmailAndPassword(auth, email, password)
-          .then((userCredential) => {
-           
-             currentUser.id = userCredential.user.uid;
-             currentUser.email = userCredential.user.email || "";
-             currentUser.name = userCredential.user.displayName || "";  
-             console.log("Success..." + currentUser.email);          
-        
-         
-            // ...
-          })
-          .catch((error) => {
-            const errorCode = error.code as FirebaseError;
-            errorMessage = error.message ;
-            alert("Signin error " + errorMessage);
-            // ..
-          });
-
-           if (errorMessage == null) {
-             set({ isAuthenticated: true, user: { ...currentUser }, isLoading: false });
-               router.replace("/(xion)");
-                
-           }
-          
-         
-        } catch (error) {
-          set({ 
-            error: error instanceof Error ? error.message : 'Login failed', 
-            isLoading: false 
-          });
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          // Buscar dados completos do usuário no Firestore (MODIFICADO)
+          const userFromFirestore = await fetchUserFromFirestore(userCredential.user.uid);
+          const user = userFromFirestore || buildUserFromFirebase(userCredential.user);
+          set({ isAuthenticated: true, user, isLoading: false });
+          // Redireciona para XION, mas só permite sair após conectar carteira
+          router.replace("/(xion)");
+          // O redirecionamento para as tabs será feito na tela XION após conectar carteira
+        } catch (error: any) {
+          const errorMessage = error instanceof FirebaseError ? error.message : 'Login failed';
+          alert("Signin error " + errorMessage);
+          set({ error: errorMessage, isLoading: false });
         }
       },
-      logout: () => {
+      logout: async () => {
+        await AsyncStorage.removeItem('auth-storage');
         set({ isAuthenticated: false, user: null });
       },
       signup: async (name, email, password) => {
-        let errorMessage = null;
-         set({ isLoading: true, error: null });
-        try {              
-          await createUserWithEmailAndPassword(auth, email, password)
-            .then((userCredential) => {
-              // Signed up
-              const user = userCredential.user;
-              console.log(user);
-              // For demo purposes, create a new user based on the mock
-                newUser = { ...currentUser, name, email };
-          //set({ isAuthenticated: true, user: newUser, isLoading: false }); 
-              // router.replace("/(tabs)");
-              
-              // ...
-            })
-            .catch((error) => {
-              const errorCode = error.code as FirebaseError;
-              errorMessage = error.message;
-              console.log(errorMessage);
-              alert("Registration failed: " + errorMessage);
-              set({ isLoading: false, error: errorMessage });
-              // ..
-            });
-           // console.log("Out first catch=== " +errorMessage);
-
-            if (errorMessage == null) {
-               set({ isAuthenticated: true, user: newUser, isLoading: false });
-                router.replace("/(xion)");
-              } 
-                
-          
-        } catch (error) {
-          set({ 
-            error: error instanceof Error ? error.message : 'Signup failed', 
-            isLoading: false 
-          });
-        }
-        /*  console.log("Out second catch=== " +errorMessage);
-        if (errorMessage == null) {
-                router.replace("/(tabs)");
-              }  */
-      },
-      forgotPassword: async (email) => {
-        let errorMessage = null;
         set({ isLoading: true, error: null });
         try {
-          await sendPasswordResetEmail(auth ,email)
-            .then(() => {
-              // Password reset email sent!
-              // ..
-              alert("Password reset email sent!");
-            })
-            .catch((error) => {
-              const errorCode = error.code as FirebaseError;
-              errorMessage = error.message;
-              console.log(errorMessage);
-              alert("Password reset email failed: " + errorMessage);
-              set({ isLoading: false, error: errorMessage });
-              // ..
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          if (userCredential.user) {
+            await updateProfile(userCredential.user, { displayName: name });
+            await setDoc(doc(db, "users", userCredential.user.uid), {
+              display_name: name,
+              email,
+              photo_url: userCredential.user.photoURL || "",
+              uid: userCredential.user.uid,
+              contacts: [],
+              wallets: [],
             });
-
-        } catch (error) {
-          set({ 
-            error: error instanceof Error ? error.message : 'Password reset failed', 
-            isLoading: false 
-          });
+          }
+          const user = buildUserFromFirebase(userCredential.user, { name, email });
+          set({ isAuthenticated: true, user, isLoading: false });
+          // Redireciona para XION, mas só permite sair após conectar carteira
+          router.replace("/(xion)");
+          // O redirecionamento para as tabs será feito na tela XION após conectar carteira
+        } catch (error: any) {
+          const errorMessage = error instanceof FirebaseError ? error.message : 'Signup failed';
+          alert("Registration failed: " + errorMessage);
+          set({ isLoading: false, error: errorMessage });
         }
       },
-      updateUser: (user) => {
-        set({ user });
+      forgotPassword: async (email) => {
+        set({ isLoading: true, error: null });
+        try {
+          await sendPasswordResetEmail(auth, email);
+          alert("Password reset email sent!");
+          set({ isLoading: false });
+        } catch (error: any) {
+          const errorMessage = error instanceof FirebaseError ? error.message : 'Password reset failed';
+          alert("Password reset email failed: " + errorMessage);
+          set({ isLoading: false, error: errorMessage });
+        }
+      },
+      updateUser: async (user) => {
+        try {
+          if (auth.currentUser) {
+            await updateProfile(auth.currentUser, { displayName: user.name, photoURL: user.avatar });
+          }
+
+          await setDoc(doc(db, "users", user.id), {
+            display_name: user.name,
+            photo_url: user.avatar,
+            email: user.email,
+            uid: user.id,
+            contacts: user.contacts || [],
+            wallets: user.wallets || [],
+          }, { merge: true });
+
+          const updatedUser = buildUserFromFirebase({ ...auth.currentUser, ...user }, { ...user });
+          set({ user: updatedUser });
+        } catch (error) {
+          console.log("Erro ao atualizar usuário:", error);
+        }
       },
     }),
     {

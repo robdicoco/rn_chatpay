@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, FlatList, Dimensions } from 'react-native';
+import { useUsersStore } from '@/store/users-store';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, FlatList, Dimensions, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowUpRight, ArrowDownLeft, Plus, Send, Wallet } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { Platform } from 'react-native';
 import TransactionCard from '@/components/TransactionCard';
 import Avatar from '@/components/Avatar';
 import BalanceCard from '@/components/BalanceCard';
@@ -20,43 +20,77 @@ import { db } from '@/firebaseConfig';
 import { QuerySnapshot } from 'firebase/firestore';
 import { collection, getDocs } from 'firebase/firestore';
 
-import { Balance } from '@/mocks/balances';
 import { organizations } from '@/mocks/organizations';
 import { getAccountBalance } from '../utils/xion_rpc';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = 300;
 
+type Transaction = {
+  id: string;
+  senderId?: string;
+  receiverId?: string;
+  amount: number | string;
+  currency?: string;
+  type: string;
+  date: string;
+  note?: string;
+  status: string;
+};
+type XionBalance = {
+  id: string;
+  name?: string;
+  amount: number | string;
+  currency?: string;
+  icon?: string;
+  denom?: string;
+};
+
 export default function HomeScreen() {
-  const { user } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const { transactions } = useTransactionStore();
+  const { users, fetchAllUsers } = useUsersStore();
   const colors = useThemeColors();
   const [refreshing, setRefreshing] = useState(false);
   const [activeBalanceIndex, setActiveBalanceIndex] = useState(0);
   const [resolvedBalances, setResolvedBalances] = useState([]);
-  const [balances, setBalances] = useState<Balance[]>([]);
+  const [balances, setBalances] = useState<XionBalance[]>([]);
+  const flatListRef = useRef<FlatList>(null);
+  const router = require('expo-router').useRouter();
 
   useEffect(() => {
-    getDocs(collection(db, 'balances')).then((querySnapshot: QuerySnapshot) => {
-      const fetchedBalances: Balance[] = [];
-      querySnapshot.forEach((doc) => {
-        fetchedBalances.push(doc.data() as Balance);
-      });
-      setBalances(fetchedBalances);
-      
-    });
-  }, []); // Only run once on mount
+    async function fetchBalance() {
+      if (user?.wallets?.[0]?.account) {
+        try {
+          const res = await getAccountBalance(user.wallets[0].account);
+          const mappedBalances = (res.balances || []).map((item: any, idx: number): XionBalance => ({
+            id: item.denom || String(idx),
+            name: item.name ?? '',
+            amount: item.amount,
+            currency: item.currency ?? '',
+            icon: item.icon ?? '',
+            denom: item.denom,
+          }));
+          setBalances(mappedBalances);
+          console.log('Saldo XION:', mappedBalances);
+          if (!mappedBalances.length) {
+            console.warn('Nenhum saldo encontrado para a carteira:', user.wallets[0].account);
+          }
+        } catch (err) {
+          console.error('Erro ao buscar saldo XION:', err);
+        }
+      }
+    }
+    fetchBalance();
+    fetchAllUsers();
+  }, [user]);
 
-  var myBalance =  getAccountBalance('xion1ydp3wsw4rkgzxsvn0dm34ec0866sdz58mw555xzrl7sg8x8uwuqs7yg5ls');
-  const value = myBalance.then((res) => {
-    console.log('myBalance', res);
-    return res;
-  });
-  
-
-  const flatListRef = useRef<FlatList>(null);
-
+  // Garante que status seja string para compatibilidade com TransactionCard
   const recentTransactions = transactions
+    .map((tx) => ({
+      ...tx,
+      status: String(tx.status ?? ''),
+    }))
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5);
 
@@ -118,36 +152,36 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {user?.wallets?.[0]?.account && (
-        <WalletHashDisplay hash={user.wallets?.[0]?.account} />
-      )}
-
+      {/* Exibe os saldos reais do blockchain XION */}
       <View style={styles.balanceCarouselContainer}>
-        <FlatList
-          ref={flatListRef}
-          data={balances} // Now using the resolved balances
-
-          keyExtractor={(item) => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          pagingEnabled
-          snapToInterval={CARD_WIDTH + 16}
-          decelerationRate="fast"
-          contentContainerStyle={styles.balanceCarouselContent}
-          onMomentumScrollEnd={handleBalanceScroll}
-          renderItem={({ item }) => (
-            <BalanceCard 
-              balance={item} 
-              onPress={() => {
-                // Navigate to balance details
-              }}
-            />
-          )}
-        />
-        <PaginationDots total={ balances.length} current={activeBalanceIndex} />
+        {balances.length > 0 ? (
+          <FlatList
+            ref={flatListRef}
+            data={balances}
+            keyExtractor={(item, idx) => (item.denom ? item.denom : String(idx))}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            pagingEnabled
+            snapToInterval={CARD_WIDTH + 16}
+            decelerationRate="fast"
+            contentContainerStyle={styles.balanceCarouselContent}
+            onMomentumScrollEnd={handleBalanceScroll}
+            renderItem={({ item }) => (
+              <BalanceCard 
+                balance={item}
+                onPress={() => {}}
+              />
+            )}
+          />
+        ) : (
+          <View style={[styles.emptyState, { backgroundColor: colors.card, borderColor: colors.border }]}> 
+            <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>No balance found</Text>
+          </View>
+        )}
+        <PaginationDots total={balances.length} current={activeBalanceIndex} />
       </View>
 
-      <View style={styles.organizationsSection}>
+      { /*<View style={styles.organizationsSection}>
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Donate for a Cause</Text>
           <TouchableOpacity>
@@ -170,7 +204,7 @@ export default function HomeScreen() {
             />
           )}
         />
-      </View>
+      </View> */}
 
       <View style={styles.quickActionsSection}>
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Quick Actions</Text>
@@ -217,13 +251,16 @@ export default function HomeScreen() {
 
         {recentTransactions.length > 0 ? (
           recentTransactions.map((transaction) => (
-            <TransactionCard
-              key={transaction.id}
-              transaction={transaction}
-              onPress={() => {
-                // Navigate to transaction details
-              }}
-            />
+          <TransactionCard
+            key={transaction.id}
+            transaction={transaction}
+            currentUserId={user?.id ?? ''}
+            contacts={user?.contacts || []}
+            users={users}
+            onPress={() => {
+              // Navigate to transaction details
+            }}
+          />
           ))
         ) : (
           <View style={[styles.emptyState, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -333,6 +370,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
 
 
 

@@ -20,7 +20,7 @@ export default function WelcomeScreen() {
     if (isAuthenticated) {
       setTimeout(() => {
         try {
-          router.replace('/(auth)/login');
+          router.replace('/(xion)');
         } catch (error) {
           console.error('Navigation error:', error);
         }

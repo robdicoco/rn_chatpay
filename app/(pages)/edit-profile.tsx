@@ -1,15 +1,72 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { useAuthStore } from '@/store/auth-store';
+import { storage } from '@/firebaseConfig';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import * as ImagePicker from 'expo-image-picker';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Feather as Icon } from '@expo/vector-icons';
 
 const EditProfileScreen = () => {
+  const user = useAuthStore((state) => state.user);
+  const updateUser = useAuthStore((state) => state.updateUser);
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [age, setAge] = useState('');
-  const [title, setTitle] = useState('');
+  const [feedback, setFeedback] = useState('');
+  const [photo, setPhoto] = useState(user?.avatar || '');
 
-  const handleSave = () => {
-    // Save logic here
+  const pickImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      alert('Permission to access photos is required!');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setPhoto(result.assets[0].uri);
+      console.log('Preview URI:', result.assets[0].uri);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name || '');
+      setEmail(user.email || '');
+    }
+  }, [user]);
+
+  const uploadImageAsync = async (uri: string, userId: string) => {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    const imageRef = ref(storage, `avatars/${userId}.jpg`);
+    await uploadBytes(imageRef, blob);
+    const url = await getDownloadURL(imageRef);
+    return url;
+  };
+
+  const handleSave = async () => {
+    if (!user) return;
+    let avatarUrl = user?.avatar;
+
+    if (photo && photo !== user?.avatar && !photo.startsWith('http')) {
+      avatarUrl = await uploadImageAsync(photo, user.id);
+    }
+  
+    await updateUser({
+      ...user,
+      name,
+      avatar: avatarUrl,
+    });
+
+    setFeedback('Profile updated successfully!');
+    setTimeout(() => setFeedback(''), 2000);
   };
 
   return (
@@ -18,48 +75,53 @@ const EditProfileScreen = () => {
         <Icon name="arrow-left" size={28} color="#fff" />
       </TouchableOpacity>
       <Text style={styles.header}>Edit Profile</Text>
-      <TouchableOpacity style={styles.photoButton}>
+      {photo ? (
+        <View style={{ alignItems: 'center', marginBottom: 16 }}>
+          <Image
+            source={{ uri: photo }}
+            style={{ width: 100, height: 100, borderRadius: 50 }}
+            resizeMode="cover"
+          />
+        </View>
+      ) : null}
+      <TouchableOpacity style={styles.photoButton} onPress={pickImage}>
         <Text style={styles.photoButtonText}>Change Photo</Text>
       </TouchableOpacity>
+      {feedback ? (
+        <Text style={{ color: '#16C098', textAlign: 'center', marginBottom: 12 }}>
+          {feedback}
+        </Text>
+      ) : null}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Your Name</Text>
         <TextInput
           style={styles.input}
           value={name}
           onChangeText={setName}
-          placeholder="[display_name]"
+          placeholder="Your Name"
           placeholderTextColor="#888"
         />
         <Text style={styles.label}>Email Address</Text>
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              backgroundColor: '#2d2f36',
+              color: '#aaa',
+              borderColor: '#444',
+              opacity: 0.7,
+            }
+          ]}
           value={email}
           onChangeText={setEmail}
           placeholder="[email]"
           placeholderTextColor="#888"
-        />
-        <Text style={styles.label}>Your Age</Text>
-        <TextInput
-          style={styles.input}
-          value={age}
-          onChangeText={setAge}
-          placeholder="[age]"
-          placeholderTextColor="#888"
-          keyboardType="numeric"
-        />
-        <Text style={styles.label}>Your Title</Text>
-        <TextInput
-          style={styles.input}
-          value={title}
-          onChangeText={setTitle}
-          placeholder="[userTitle]"
-          placeholderTextColor="#888"
+          editable={false}
         />
       </View>
       <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
         <Text style={styles.saveButtonText}>Save Changes</Text>
       </TouchableOpacity>
-      {/* Add your wave SVG or image at the bottom as needed */}
     </View>
   );
 };

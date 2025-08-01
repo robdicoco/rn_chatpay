@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Home, MessageSquare, Send, User } from 'lucide-react-native';
+import { View } from 'react-native';
+import { Building, Home, MessageSquare, Send, User, WalletCards } from 'lucide-react-native';
 import { useThemeColors } from '@/constants/colors';
 
 export default function TabLayout() {
@@ -32,15 +33,8 @@ export default function TabLayout() {
         name="index"
         options={{
           headerShown: false,
-          title: "Home",
-          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="chat"
-        options={{
-          title: "Chat",
-          tabBarIcon: ({ color, size }) => <MessageSquare size={size} color={color} />,
+          title: "Wallet",
+          tabBarIcon: ({ color, size }) => <WalletCards size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -51,10 +45,25 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="chat"
+        options={{
+          title: "Chat",
+          tabBarIcon: ({ color, size }) => <MessageSquare size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
           tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="organization"
+        options={{
+          title: "Orgs",
+          tabBarIcon: ({ color, size }) => <Building size={size} color={color} />,
         }}
       />
     </Tabs>
