@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  TextInput, 
-  TouchableOpacity, 
-  KeyboardAvoidingView, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
 } from 'react-native';
@@ -17,66 +17,94 @@ import MessageBubble from '@/components/MessageBubble';
 import Avatar from '@/components/Avatar';
 import { useThemeColors } from '@/constants/colors';
 import { useChatStore } from '@/store/chat-store';
-import { contacts, currentUser } from '@/mocks/users';
+import { useAuthStore } from '@/store/auth-store';
 
 export default function ChatDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { messages, conversations, sendMessage, activeConversationId } = useChatStore();
-  const [messageText, setMessageText] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const { id: paramId } = useLocalSearchParams<{ id: string }>();
   const colors = useThemeColors();
-  
   const flatListRef = useRef<FlatList>(null);
-  
-  // Find the conversation and other participant
-  const conversation = conversations.find(c => c.id === id);
-  const otherParticipantId = conversation?.participants.find(
-    participantId => participantId !== currentUser.id
-  );
-  const otherParticipant = contacts.find(contact => contact.id === otherParticipantId);
-  
-  // Filter messages for this conversation
-  const conversationMessages = messages
-    .filter(message => message.conversationId === id)
-    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-  
+  const { user } = useAuthStore();
+  const {
+    conversations,
+    messages,
+    fetchConversationsFromFirestore,
+    fetchMessagesFromFirestore,
+    sendMessageToFirestore,
+    setActiveConversation,
+    activeConversationId,
+    isLoading,
+  } = useChatStore();
+
+  const [messageText, setMessageText] = useState('');
+
   useEffect(() => {
-    // Scroll to bottom when messages change
+    if (user?.id) {
+      fetchConversationsFromFirestore(user.id);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id || !paramId) return;
+    let chatId = '';
+
+    if (paramId.includes('_')) {
+      const parts = paramId.split('_');
+      if (parts.length === 2 && parts.includes(user.id)) {
+        chatId = paramId;
+      } else {
+        chatId = [user.id, paramId].sort().join('_');
+      }
+    } else {
+      if (user.id === paramId) {
+        return;
+      }
+      chatId = [user.id, paramId].sort().join('_');
+    }
+    setActiveConversation(chatId);
+    fetchMessagesFromFirestore(chatId, user.id);
+  }, [paramId, user?.id]);
+
+  const chatId = activeConversationId;
+
+  const conversationMessages = messages
+    .filter(message => {
+      return message.chatId === chatId && !!message.message;
+    })
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+  // Scroll para última mensagem
+  useEffect(() => {
     if (flatListRef.current && conversationMessages.length > 0) {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
   }, [conversationMessages.length]);
-  
-  const handleSendMessage = () => {
-    if (!messageText.trim() || !otherParticipantId) return;
-    
+
+  // Enviar mensagem
+  const handleSendMessage = async () => {
+    if (!messageText.trim() || !user?.id || !chatId) return;
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    
-    setIsLoading(true);
-    
-    // Simulate network delay
-    setTimeout(() => {
-      sendMessage(messageText.trim(), otherParticipantId);
-      setMessageText('');
-      setIsLoading(false);
-    }, 500);
+    await sendMessageToFirestore(chatId, {
+      message: messageText.trim(),
+      senderId: user.id,
+    });
+    setMessageText('');
   };
-  
+
   const handleSendMoney = () => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    
+    const otherUserId = chatId?.split('_').find(id => id !== user?.id) || '';
     router.push({
       pathname: '/send-money',
-      params: { receiverId: otherParticipantId }
+      params: { receiverId: otherUserId }
     });
   };
-  
+
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -85,26 +113,30 @@ export default function ChatDetailScreen() {
     >
       <Stack.Screen
         options={{
-          title: otherParticipant?.name || 'Chat',
+          title: 'Chat',
           headerRight: () => (
             <Avatar
-              uri={otherParticipant?.avatar || ''}
+              uri={''}
               size={36}
               style={{ marginRight: 8 }}
             />
           ),
         }}
       />
-      
+
       <FlatList
         ref={flatListRef}
         data={conversationMessages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <MessageBubble
-            message={item}
+            message={{
+              ...item,
+              text: item.message
+            }}
+            userId={user?.id}
             onTransactionPress={(transactionId) => {
-              // Navigate to transaction details
+              // Navegar para detalhes da transação
             }}
           />
         )}
@@ -118,15 +150,15 @@ export default function ChatDetailScreen() {
           </View>
         }
       />
-      
+
       <View style={[styles.inputContainer, { borderTopColor: colors.border, backgroundColor: colors.card }]}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.sendMoneyButton, { backgroundColor: 'rgba(46, 204, 113, 0.1)' }]}
           onPress={handleSendMoney}
         >
           <DollarSign size={24} color={colors.primary} />
         </TouchableOpacity>
-        
+
         <View style={[styles.textInputContainer, { backgroundColor: colors.lightGray }]}>
           <TextInput
             style={[styles.textInput, { color: colors.textPrimary }]}
@@ -137,7 +169,7 @@ export default function ChatDetailScreen() {
             multiline
           />
         </View>
-        
+
         <TouchableOpacity
           style={[
             styles.sendButton,

@@ -1,25 +1,26 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Conversation } from '@/mocks/messages';
-import { contacts, currentUser } from '@/mocks/users';
+import { Conversation } from '@/store/chat-store'; // Usa o tipo do chat-store.ts
 import Avatar from './Avatar';
 import { useThemeColors } from '@/constants/colors';
 
 interface ConversationItemProps {
   conversation: Conversation;
+  contactName: string;
+  contactAvatar?: string;
   onPress: () => void;
 }
 
-export default function ConversationItem({ conversation, onPress }: ConversationItemProps) {
+export default function ConversationItem({ conversation, contactName, contactAvatar, onPress }: ConversationItemProps) {
   const colors = useThemeColors();
-  const otherParticipantId = conversation.participants.find(id => id !== currentUser.id);
-  const otherParticipant = contacts.find(contact => contact.id === otherParticipantId);
-  
-  const formatTime = (timestamp: string) => {
+
+  // Função para formatar o horário da última mensagem
+  const formatTime = (timestamp?: string) => {
+    if (!timestamp) return '';
     const date = new Date(timestamp);
     const now = new Date();
     const isToday = date.toDateString() === now.toDateString();
-    
+
     if (isToday) {
       return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     } else {
@@ -27,42 +28,44 @@ export default function ConversationItem({ conversation, onPress }: Conversation
     }
   };
 
-  const hasTransaction = conversation.lastMessage.attachedTransaction !== undefined;
-  
+  const hasTransaction = conversation.lastMessage?.attachedTransaction !== undefined;
+
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[styles.container, { backgroundColor: colors.card, borderBottomColor: colors.border }]}
       onPress={onPress}
       activeOpacity={0.7}
     >
       <View style={styles.avatarContainer}>
-        <Avatar 
-          uri={otherParticipant?.avatar || ''} 
+        <Avatar
+          uri={contactAvatar || ''}
           size={56}
           showBorder={conversation.unreadCount > 0}
           borderColor={colors.primary}
         />
       </View>
-      
+
       <View style={styles.contentContainer}>
         <View style={styles.headerRow}>
-          <Text style={[styles.name, { color: colors.textPrimary }]}>{otherParticipant?.name || 'Unknown'}</Text>
-          <Text style={[styles.time, { color: colors.textSecondary }]}>{formatTime(conversation.lastMessage.timestamp)}</Text>
+          <Text style={[styles.name, { color: colors.textPrimary }]}>{contactName || 'Unknown'}</Text>
+          <Text style={[styles.time, { color: colors.textSecondary }]}>
+            {formatTime(conversation.lastMessage?.timestamp)}
+          </Text>
         </View>
-        
+
         <View style={styles.messageRow}>
-          <Text 
+          <Text
             style={[
-              styles.message, 
+              styles.message,
               { color: colors.textSecondary },
               conversation.unreadCount > 0 && [styles.unreadMessage, { color: colors.textPrimary }]
             ]}
             numberOfLines={1}
           >
             {hasTransaction && '💰 '}
-            {conversation.lastMessage.text}
+            {conversation.lastMessage?.text || (conversation.lastMessage as any)?.message || 'No messages yet'}
           </Text>
-          
+
           {conversation.unreadCount > 0 && (
             <View style={[styles.badge, { backgroundColor: colors.primary }]}>
               <Text style={styles.badgeText}>{conversation.unreadCount}</Text>

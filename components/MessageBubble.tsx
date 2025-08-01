@@ -1,50 +1,57 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Message } from '@/mocks/messages';
-import { currentUser } from '@/mocks/users';
+import { Message } from '@/store/chat-store';
 import { useThemeColors } from '@/constants/colors';
 import { LinearGradient } from 'expo-linear-gradient';
 
 interface MessageBubbleProps {
   message: Message;
-  onTransactionPress?: (transactionId: string) => void;
+  userId?: string;
+  onTransactionPress?: (txHash: string) => void;
 }
 
-export default function MessageBubble({ message, onTransactionPress }: MessageBubbleProps) {
+export default function MessageBubble({ message, userId, onTransactionPress }: MessageBubbleProps) {
   const colors = useThemeColors();
-  const isCurrentUser = message.senderId === currentUser.id;
-  const hasTransaction = message.attachedTransaction !== undefined;
-  
+  const isCurrentUser = userId ? message.senderId === userId : false;
+  const hasTransaction = !!message.attachedTransaction;
+
+  const getTransactionStatus = () => {
+    if (!message.attachedTransaction) return 'Pending';
+    return message.attachedTransaction.txHash ? 'Completed' : 'Pending';
+  };
+
+  const getTransactionStatusColor = () => {
+    const status = getTransactionStatus();
+    if (status === 'Completed') return colors.primary;
+    if (status === 'Pending') return colors.highlight;
+    return colors.textSecondary;
+  };
+
+  const formatAmount = (amount: number, currency: string) => {
+    if (currency === 'USDC') return amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return amount.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+  };
+
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
-  const getTransactionStatusColor = () => {
-    if (!message.attachedTransaction) return colors.textSecondary;
-    
-    switch (message.attachedTransaction.status) {
-      case 'completed':
-        return colors.primary;
-      case 'pending':
-        return colors.highlight;
-      case 'failed':
-        return colors.alert;
-      default:
-        return colors.textSecondary;
-    }
-  };
-
   const renderTransactionBubble = () => {
     if (!message.attachedTransaction) return null;
-    
-    const { amount, currency, status, type } = message.attachedTransaction;
+    const { amount, currency, type, txHash } = message.attachedTransaction;
     const isReceiving = type === 'receive';
-    
     return (
       <TouchableOpacity
         style={styles.transactionContainer}
-        onPress={() => onTransactionPress && onTransactionPress(message.attachedTransaction!.id)}
+        onPress={() => {
+          if (txHash) {
+            const url = `https://explorer.xion.org/tx/${txHash}`;
+            if (typeof window !== 'undefined') {
+              window.open(url, '_blank');
+            }
+          }
+        }}
         activeOpacity={0.8}
       >
         <LinearGradient
@@ -55,23 +62,32 @@ export default function MessageBubble({ message, onTransactionPress }: MessageBu
         >
           <View style={[styles.transactionContent, { backgroundColor: colors.card }]}>
             <Text style={[styles.transactionTitle, { color: colors.textPrimary }]}>
-              {isReceiving ? 'Payment Received' : 'Payment Sent'}
+              {isReceiving ? 'Payment received' : 'Payment sent'}
             </Text>
             <Text style={[styles.transactionAmount, { color: colors.textPrimary }]}>
-              {currency} {amount.toFixed(2)}
+              {currency} {formatAmount(amount, currency)}
             </Text>
             <View style={styles.transactionStatusContainer}>
-              <View style={[
-                styles.statusIndicator, 
-                { backgroundColor: getTransactionStatusColor() }
-              ]} />
-              <Text style={[
-                styles.transactionStatus,
-                { color: getTransactionStatusColor() }
-              ]}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
+              <View style={[styles.statusIndicator, { backgroundColor: getTransactionStatusColor() }]} />
+              <Text style={[styles.transactionStatus, { color: getTransactionStatusColor() }]}>
+                {getTransactionStatus()}
               </Text>
             </View>
+            {txHash && (
+              <TouchableOpacity
+                onPress={() => {
+                  const url = `https://explorer.xion.org/tx/${txHash}`;
+                  if (typeof window !== 'undefined') {
+                    window.open(url, '_blank');
+                  }
+                }}
+                style={{ marginTop: 6 }}
+              >
+                <Text style={{ color: colors.secondary, fontSize: 12 }} numberOfLines={1} ellipsizeMode="middle">
+                  {txHash}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </LinearGradient>
       </TouchableOpacity>
@@ -79,27 +95,17 @@ export default function MessageBubble({ message, onTransactionPress }: MessageBu
   };
 
   return (
-    <View style={[
-      styles.container,
-      isCurrentUser ? styles.currentUserContainer : styles.otherUserContainer
-    ]}>
+    <View style={[styles.container, isCurrentUser ? styles.currentUserContainer : styles.otherUserContainer]}>
       {hasTransaction && renderTransactionBubble()}
-      
       <View style={[
         styles.messageBubble,
         isCurrentUser ? [styles.currentUserBubble, { backgroundColor: colors.primary }] : [styles.otherUserBubble, { backgroundColor: colors.lightGray }],
         hasTransaction && styles.messageWithTransaction
       ]}>
-        <Text style={[
-          styles.messageText,
-          isCurrentUser ? styles.currentUserText : [styles.otherUserText, { color: colors.textPrimary }]
-        ]}>
-          {message.text}
+        <Text style={[styles.messageText, isCurrentUser ? styles.currentUserText : [styles.otherUserText, { color: colors.textPrimary }]]}>
+          {message.message}
         </Text>
-        <Text style={[
-          styles.timestamp,
-          isCurrentUser ? styles.currentUserTimestamp : [styles.otherUserTimestamp, { color: colors.textSecondary }]
-        ]}>
+        <Text style={[styles.timestamp, isCurrentUser ? styles.currentUserTimestamp : [styles.otherUserTimestamp, { color: colors.textSecondary }]]}>
           {formatTime(message.timestamp)}
         </Text>
       </View>
