@@ -4,19 +4,45 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react-native';
 import { useThemeColors } from '@/constants/colors';
-import { Balance } from '@/mocks/balances';
+
+type XionBalance = {
+  id: string;
+  name?: string;
+  amount: number | string;
+  currency?: string;
+  icon?: string;
+  denom?: string;
+};
 
 interface BalanceCardProps {
-  balance: Balance;
+  balance: XionBalance;
   onPress?: () => void;
   style?: any;
 }
 
 export default function BalanceCard({ balance, onPress, style }: BalanceCardProps) {
   const colors = useThemeColors();
-  const hasChange = balance.change !== undefined;
-  const isPositiveChange = hasChange && balance.change && balance.change.percentage > 0;
-  
+  let denom = '';
+  let displayAmount: string | number = balance.amount;
+  let tokenIcon: any = null;
+  if (
+    balance.denom === 'uxion' ||
+    balance.denom === 'uusdc' ||
+    (balance.denom && balance.denom.startsWith('ibc/'))
+  ) {
+    denom = balance.denom === 'uxion' ? 'XION' : 'USDC';
+    const amount = typeof balance.amount === 'string' ? parseFloat(balance.amount) : balance.amount;
+    displayAmount = (amount / 1_000_000).toLocaleString('en-US', { maximumFractionDigits: 6 });
+    if (denom === 'XION') {
+      tokenIcon = require('../assets/images/xion.png');
+    } else if (denom === 'USDC') {
+      tokenIcon = require('../assets/images/usdc.png');
+    }
+  } else {
+    denom = balance.denom || '';
+    tokenIcon = balance.icon ? { uri: balance.icon } : null;
+  }
+
   return (
     <TouchableOpacity 
       style={[styles.container, style]}
@@ -29,50 +55,27 @@ export default function BalanceCard({ balance, onPress, style }: BalanceCardProp
         end={{ x: 1, y: 0 }}
         style={styles.gradient}
       >
-        <View style={[styles.content, { backgroundColor: colors.card }]}>
-          <View style={styles.header}>
-            <View style={styles.currencyInfo}>
+        <View style={[styles.content, { backgroundColor: colors.card }]}> 
+          <View style={styles.header}> 
+            <View style={styles.currencyInfo}> 
               <Image
-                source={{ uri: balance.icon }}
+                source={tokenIcon}
                 style={styles.currencyIcon}
               />
-              <Text style={[styles.currencyName, { color: colors.textPrimary }]}>{balance.name}</Text>
+              <Text style={[styles.currencyName, { color: colors.textPrimary }]}>{denom}</Text>
             </View>
-            
-            {hasChange && balance.change && (
-              <View style={[
-                styles.changeContainer,
-                isPositiveChange ? styles.positiveChange : styles.negativeChange
-              ]}>
-                {isPositiveChange ? (
-                  <ArrowUpRight size={14} color={colors.success} />
-                ) : (
-                  <ArrowDownRight size={14} color={colors.error} />
-                )}
-                <Text style={[
-                  styles.changeText,
-                  isPositiveChange ? styles.positiveChangeText : styles.negativeChangeText
-                ]}>
-                  {isPositiveChange ? '+' : ''}{balance.change?.percentage}%
-                </Text>
-              </View>
-            )}
           </View>
-          
           <View style={styles.balanceContainer}>
             <Text style={[styles.balanceLabel, { color: colors.textSecondary }]}>Balance</Text>
-            <Text style={[styles.balanceAmount, { color: colors.textPrimary }]}>
-              {balance.symbol === '$' ? `${balance.symbol}${balance.amount.toLocaleString()}` : 
-                `${balance.amount.toLocaleString()} ${balance.symbol}`}
+            <Text style={[styles.balanceAmount, { color: colors.textPrimary }]}> 
+              {displayAmount} {denom}
             </Text>
           </View>
-          
           <View style={styles.actionButtonsContainer}>
-            <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.lightGray }]}>
+            <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.lightGray }]}> 
               <Text style={[styles.actionButtonText, { color: colors.textPrimary }]}>Send</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.lightGray }]}>
+            <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.lightGray }]}> 
               <Text style={[styles.actionButtonText, { color: colors.textPrimary }]}>Receive</Text>
             </TouchableOpacity>
           </View>

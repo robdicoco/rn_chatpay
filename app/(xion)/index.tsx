@@ -116,9 +116,10 @@ export default function Index() {
     ) {
       handleUserFirestoreAndAuthStore(loggedUser);
       prevAccountRef.current = currentAccount;
-      //router.replace("/(tabs)");
+      // Redireciona para chats somente após conectar wallet
+      // router.push('/(tabs)/chat'); // já está no handleUserFirestoreAndAuthStore
     }
-    // Only run when account.bech32Address changes
+    // Só executa quando a wallet está realmente conectada
   }, [account?.bech32Address]);
   // State variables
   const [loading, setLoading] = useState(false);
@@ -865,7 +866,15 @@ async function handleUserFirestoreAndAuthStore(loggedUser: User) {
       });
     }
     // Save to auth-store
-    useAuthStore.setState({ user: loggedUser, isAuthenticated: true });
+    const prevUser = useAuthStore.getState().user;
+    useAuthStore.setState({
+      user: {
+        ...prevUser,
+        ...loggedUser,
+        wallets: loggedUser.wallets,
+      },
+      isAuthenticated: true,
+    });
     console.log('User account updated successfully ' + loggedUser?.wallets?.[0]?.account); 
-    router.push('/(tabs)');
+    router.push('/(tabs)/chat');
 }

@@ -4,8 +4,9 @@ export interface User {
   avatar?: string;
   email: string;
   isRegistered?: boolean;
-  wallets?:Chain[];
-  }
+  wallets?: Chain[];
+  contacts?: User[]; // Adiciona a lista de contatos
+}
 
   export interface Chain {
     name: string;

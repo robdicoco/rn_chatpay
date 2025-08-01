@@ -5,11 +5,15 @@ import { ArrowUpRight, ArrowDownLeft } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 import TransactionCard from '@/components/TransactionCard';
+import { useUsersStore } from '@/store/users-store';
 import { useThemeColors } from '@/constants/colors';
 import { useTransactionStore } from '@/store/transaction-store';
+import { useAuthStore } from '@/store/auth-store';
 
 export default function PaymentsScreen() {
   const { transactions } = useTransactionStore();
+  const { user } = useAuthStore();
+  const { users, fetchAllUsers } = useUsersStore();
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'all' | 'sent' | 'received'>('all');
   const colors = useThemeColors();
@@ -22,6 +26,9 @@ export default function PaymentsScreen() {
       return true;
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  React.useEffect(() => {
+    fetchAllUsers();
+  }, []);
   
   const handleSendMoney = () => {
     if (Platform.OS !== 'web') {
@@ -126,12 +133,15 @@ export default function PaymentsScreen() {
         data={filteredTransactions}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <TransactionCard
-            transaction={item}
-            onPress={() => {
-              // Navigate to transaction details
-            }}
-          />
+            <TransactionCard
+              transaction={item}
+              currentUserId={user?.id ?? ''}
+              contacts={user?.contacts || []}
+              users={users}
+              onPress={() => {
+                // Navigate to transaction details
+              }}
+            />
         )}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.listContent}

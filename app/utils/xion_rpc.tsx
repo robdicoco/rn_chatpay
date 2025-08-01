@@ -39,32 +39,79 @@ export async function getAddressTransactions(address: string, limit: number = 10
   // Query sent transactions
   const sentQuery = `message.sender='${address}'`;
   const sentTxs = await client.searchTx(sentQuery);
-  
+  console.log('[XION_RPC] SentTxs:', sentTxs);
+
   // Query received transactions
   const receivedQuery = `transfer.recipient='${address}'`;
   const receivedTxs = await client.searchTx(receivedQuery);
-  
+  console.log('[XION_RPC] ReceivedTxs:', receivedTxs);
+
   // Combine and sort by height (descending)
   const allTxs = [...sentTxs, ...receivedTxs]
     .sort((a, b) => b.height - a.height)
     .slice(0, limit);
+  console.log('[XION_RPC] AllTxs:', allTxs);
 
-  // Transform transactions into a more usable format
-  return allTxs.map(tx => {
+  // Busca o timestamp real do bloco para cada transação
+  async function getBlockTimestamp(height: number): Promise<string> {
+    try {
+      const block = await client.getBlock(height);
+      return block.header.time;
+    } catch {
+      return new Date().toISOString();
+    }
+  }
+
+  // Transforma transactions em um formato mais legível
+  return await Promise.all(allTxs.map(async tx => {
     const decodedTx = Tx.decode(tx.tx);
     const msg = decodedTx.body?.messages?.[0];
+    let amount = '0';
+    let denom = 'XION';
+    let sender = '';
+    let recipient = '';
+
+    // Extrai dados de transferências (bank send)
+    if (msg && msg.typeUrl === '/cosmos.bank.v1beta1.MsgSend') {
+      try {
+        let value: any = msg.value || msg;
+        // Se value for um buffer, tenta decodificar para objeto
+        if (value instanceof Uint8Array) {
+          try {
+            value = JSON.parse(Buffer.from(value).toString('utf8'));
+          } catch (jsonErr) {
+            value = {};
+          }
+        }
+        sender = value.fromAddress || value.from_address || address;
+        recipient = value.toAddress || value.to_address || address;
+        if (value.amount && Array.isArray(value.amount) && value.amount.length > 0) {
+          // Converte para XION (dividindo por 1_000_000)
+          const rawAmount = value.amount[0].amount || '0';
+          amount = (parseFloat(rawAmount) / 1_000_000).toString();
+          denom = value.amount[0].denom || 'XION';
+        }
+      } catch (e) {
+        amount = '0';
+        denom = 'XION';
+        sender = address;
+        recipient = address;
+      }
+    }
+    // Outros tipos de mensagem podem ser tratados aqui
+    const timestamp = await getBlockTimestamp(tx.height);
     
     return {
       height: tx.height,
       hash: tx.hash,
-      timestamp: new Date().toISOString(), // Temporary timestamp since IndexedTx doesn't provide it
+      timestamp,
       type: msg?.typeUrl || 'unknown',
-      amount: '0', // You'll need to extract this from the message
-      denom: 'XION', // Default to XION, extract from message if available
-      sender: address,
-      recipient: address,
+      amount,
+      denom,
+      sender,
+      recipient,
     };
-  });
+  }));
 }
 
 /**
