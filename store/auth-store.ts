@@ -64,13 +64,10 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         try {
           const userCredential = await signInWithEmailAndPassword(auth, email, password);
-          // Buscar dados completos do usuário no Firestore (MODIFICADO)
           const userFromFirestore = await fetchUserFromFirestore(userCredential.user.uid);
           const user = userFromFirestore || buildUserFromFirebase(userCredential.user);
           set({ isAuthenticated: true, user, isLoading: false });
-          // Redireciona para XION, mas só permite sair após conectar carteira
           router.replace("/(xion)");
-          // O redirecionamento para as tabs será feito na tela XION após conectar carteira
         } catch (error: any) {
           const errorMessage = error instanceof FirebaseError ? error.message : 'Login failed';
           alert("Signin error " + errorMessage);
