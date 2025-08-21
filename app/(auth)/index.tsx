@@ -10,23 +10,7 @@ import {getAuth} from 'firebase/auth';
 export default function WelcomeScreen() {
     
   const { isAuthenticated, user } = useAuthStore();
-  console.log("Current user => (auth) Index " + user?.email);
-  console.log('auth', isAuthenticated);
   const colors = useThemeColors();
-
- 
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      setTimeout(() => {
-        try {
-          router.replace('/(xion)');
-        } catch (error) {
-          console.error('Navigation error:', error);
-        }
-      }, 100);
-    }
-  }, [isAuthenticated]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
