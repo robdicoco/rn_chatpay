@@ -1,8 +1,9 @@
+// src/stores/users-store.ts
 import { create } from 'zustand';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 
-export interface User {
+export interface UserListItem {
   uid: string;
   name?: string;
   avatar?: string;
@@ -11,7 +12,7 @@ export interface User {
 }
 
 interface UsersState {
-  users: User[];
+  users: UserListItem[];
   isLoading: boolean;
   error: string | null;
   fetchAllUsers: () => Promise<void>;
@@ -25,10 +26,10 @@ export const useUsersStore = create<UsersState>((set) => ({
     set({ isLoading: true });
     try {
       const querySnapshot = await getDocs(collection(db, 'users'));
-      const users: User[] = querySnapshot.docs.map((doc) => {
-        const data = doc.data();
+      const users: UserListItem[] = querySnapshot.docs.map((docSnap) => {
+        const data = docSnap.data();
         return {
-          uid: doc.id,
+          uid: docSnap.id,
           name: data.display_name || data.name || '',
           avatar: data.avatar || data.photo_url || '',
           photo_url: data.photo_url || '',

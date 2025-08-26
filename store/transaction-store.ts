@@ -1,16 +1,20 @@
-// Mapeia denom para nome amigável
-export function mapDenom(denom: string): string {
-  if (!denom) return '';
-  if (denom === 'uxion') return 'XION';
-  if (denom === 'uusdc') return 'USDC';
-  if (denom.startsWith('ibc/') || denom.toLowerCase().includes('usdc')) return 'USDC';
-  return denom.toUpperCase();
-}
-
+// src/stores/transaction-store.ts
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from './auth-store';
+import { useUsersStore } from './users-store';
+import { getAddressTransactionsREST, getAccountBalances } from '../app/utils/xion';
+
+// Denom para nome amigável (opcional)
+export function mapDenom(denom: string): string {
+  if (!denom) return '';
+  const d = denom.toLowerCase();
+  if (d === 'uxion') return 'XION';
+  if (d === 'uusdc') return 'USDC';
+  if (d.startsWith('ibc/') || d.includes('usdc')) return 'USDC';
+  return denom.toUpperCase();
+}
 
 export interface Transaction {
   id: string;
@@ -19,63 +23,95 @@ export interface Transaction {
   amount: number;
   currency: string;
   status: string;
-  type: string;
+  type: string;   // 'send' | 'receive'
   date: string;
-  note?: string;
+  note?: string;  // contato
 }
 
-interface TransactionState {
+interface TransactionStore {
   transactions: Transaction[];
   isLoading: boolean;
   error: string | null;
-  sendMoney?: (receiverId: string, amount: number, currency: string, note?: string) => Promise<Transaction>;
-  requestMoney?: (senderId: string, amount: number, currency: string, note?: string) => Promise<Transaction>;
+  balance: any;
+
   fetchTransactionHistory: () => Promise<void>;
-  fetchBlockchainTransactions?: () => Promise<Transaction[]>;
+  fetchAndUpdateBalance: () => Promise<void>;
 }
 
-export const useTransactionStore = create<TransactionState>()(
+export const useTransactionStore = create<TransactionStore>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       transactions: [],
       isLoading: false,
       error: null,
+      balance: undefined,
 
-      // Buscar histórico de transações do blockchain XION
       fetchTransactionHistory: async () => {
         set({ isLoading: true });
         try {
           const { user } = useAuthStore.getState();
-          if (!user?.wallets || user.wallets.length === 0) throw new Error('Usuário sem wallet');
-          const wallet = user.wallets[0];
-          const xionAddress = wallet?.account || '';
-          if (!xionAddress) throw new Error('Wallet sem endereço XION');
-          // Importa função do helper
-          const { getAddressTransactions } = require('../app/utils/xion_rpc');
-          const rawTxs = await getAddressTransactions(xionAddress, 50);
-
-          if (!Array.isArray(rawTxs)) {
-            set({ error: 'Histórico blockchain inválido', isLoading: false });
-            return;
+          const { users } = useUsersStore.getState();
+          if (!user?.wallets || user.wallets.length === 0) {
+            throw new Error('User has no wallet');
           }
-          const blockchainTxs: Transaction[] = rawTxs.map((tx: any, idx: number): Transaction => {
+          const walletAddress = user.wallets[0].account;
+
+          const txs = await getAddressTransactionsREST(walletAddress, 50);
+
+          const parsed: Transaction[] = txs.map((tx) => {
+            let type: 'send' | 'receive' | '' = '';
+            let contactName = 'Unknown';
+
+            if (tx.sender === walletAddress) {
+              type = 'send';
+              const contact = users.find((u) => u.wallets && u.wallets[0]?.account === tx.recipient);
+              contactName = contact?.name || 'Unknown';
+            } else if (tx.recipient === walletAddress) {
+              type = 'receive';
+              const contact = users.find((u) => u.wallets && u.wallets[0]?.account === tx.sender);
+              contactName = contact?.name || 'Unknown';
+            }
+
             return {
-              id: tx.hash || `chain-${tx.height}-${idx}`,
-              senderId: tx.sender || '',
-              receiverId: tx.recipient || '',
-              amount: tx.amount ? Number(tx.amount) : 0,
-              currency: mapDenom(tx.denom),
+              id: tx.hash,
+              senderId: tx.sender,
+              receiverId: tx.recipient,
+              amount: parseFloat(tx.amount),      // tx.amount já vem em XION (display)
+              currency: tx.denom,                 // "XION" na maioria
               status: 'completed',
-              type: tx.sender === xionAddress ? 'send' : 'receive',
-              date: tx.timestamp || new Date().toISOString(),
-              note: '',
+              type,
+              date: tx.timestamp,
+              note: contactName,
             };
           });
-          // Ordena por data decrescente
-          const allTxs: Transaction[] = blockchainTxs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          set({ transactions: allTxs, isLoading: false });
-        } catch (error) {
-          set({ error: 'Erro ao buscar histórico blockchain', isLoading: false });
+
+          set({ transactions: parsed, isLoading: false });
+        } catch (error: any) {
+          set({ error: error?.message || 'Error fetching transactions', isLoading: false });
+        }
+      },
+
+      fetchAndUpdateBalance: async () => {
+        try {
+          const { user } = useAuthStore.getState();
+          if (!user?.wallets || user.wallets.length === 0) return;
+
+          const address = user.wallets[0].account;
+          if (!address) return;
+
+          const balances = await getAccountBalances(address);
+
+          const result = {
+            balances, // array { denom, amount } (uxion etc.)
+            xionDisplay: (() => {
+              const b = balances.find(b => b.denom === 'uxion')?.amount ?? '0';
+              return Number(b) / 1_000_000;
+            })(),
+          };
+
+          set({ balance: result });
+        } catch {
+          set({ error: 'Error fetching balance' });
         }
       },
     }),
