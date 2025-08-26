@@ -25,21 +25,27 @@ export default function BalanceCard({ balance, onPress, style }: BalanceCardProp
   let denom = '';
   let displayAmount: string | number = balance.amount;
   let tokenIcon: any = null;
-  if (
-    balance.denom === 'uxion' ||
+  if (balance.denom === 'uxion') {
+    denom = 'XION';
+    const amount = typeof balance.amount === 'string' ? parseFloat(balance.amount) : balance.amount;
+    displayAmount = amount.toLocaleString('en-US', { maximumFractionDigits: 6 });
+    tokenIcon = require('../assets/images/xion.png');
+  } else if (
     balance.denom === 'uusdc' ||
-    (balance.denom && balance.denom.startsWith('ibc/'))
+    (balance.denom && balance.denom.toLowerCase().includes('usdc'))
   ) {
-    denom = balance.denom === 'uxion' ? 'XION' : 'USDC';
+    // Não exibe USDC
+    return null;
+  } else if (balance.denom && balance.denom.startsWith('ibc/')) {
+    // Token IBC: nome amigável e valor formatado
+    denom = balance.denom.slice(0, 13) + '...';
     const amount = typeof balance.amount === 'string' ? parseFloat(balance.amount) : balance.amount;
     displayAmount = (amount / 1_000_000).toLocaleString('en-US', { maximumFractionDigits: 6 });
-    if (denom === 'XION') {
-      tokenIcon = require('../assets/images/xion.png');
-    } else if (denom === 'USDC') {
-      tokenIcon = require('../assets/images/usdc.png');
-    }
+    tokenIcon = balance.icon ? { uri: balance.icon } : null;
   } else {
     denom = balance.denom || '';
+    const amount = typeof balance.amount === 'string' ? parseFloat(balance.amount) : balance.amount;
+    displayAmount = amount.toLocaleString('en-US', { maximumFractionDigits: 6 });
     tokenIcon = balance.icon ? { uri: balance.icon } : null;
   }
 
@@ -70,14 +76,6 @@ export default function BalanceCard({ balance, onPress, style }: BalanceCardProp
             <Text style={[styles.balanceAmount, { color: colors.textPrimary }]}> 
               {displayAmount} {denom}
             </Text>
-          </View>
-          <View style={styles.actionButtonsContainer}>
-            <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.lightGray }]}> 
-              <Text style={[styles.actionButtonText, { color: colors.textPrimary }]}>Send</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.lightGray }]}> 
-              <Text style={[styles.actionButtonText, { color: colors.textPrimary }]}>Receive</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </LinearGradient>

@@ -111,72 +111,82 @@ export default function TransactionCard({ transaction, currentUserId, contacts =
     });
   };
 
-  const getStatusColor = () => {
-    switch (transaction.status) {
-      case 'completed':
-        return colors.primary;
-      case 'pending':
-        return colors.highlight;
-      case 'failed':
-        return colors.alert;
-      default:
-        return colors.textSecondary;
-    }
-  };
-
-  const getTransactionIcon = () => {
-    if (transaction.status === 'pending') {
-      return <Clock size={20} color={getStatusColor()} />;
-    }
-    return isSender ? (
-      <ArrowUpRight size={20} color={colors.alert} />
-    ) : (
-      <ArrowDownLeft size={20} color={colors.primary} />
-    );
-  };
-
+  // Clean, profissional, UX/UI refinado
   return (
-    <TouchableOpacity 
-      style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}
+    <TouchableOpacity
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 14,
+        paddingHorizontal: 18,
+        borderRadius: 14,
+        marginBottom: 12,
+        backgroundColor: colors.card,
+        borderWidth: 0,
+        shadowColor: colors.textPrimary,
+        shadowOpacity: 0.06,
+        shadowRadius: 6,
+        elevation: 1,
+        minHeight: 72,
+      }}
       onPress={onPress}
-      activeOpacity={0.7}
+      activeOpacity={0.92}
     >
-      <View style={styles.avatarContainer}>
+      {/* Avatar */}
+      <View style={{ marginRight: 14 }}>
         {otherPartyUser?.avatar || otherPartyUser?.photo_url ? (
-          <Avatar uri={otherPartyUser?.avatar || otherPartyUser?.photo_url || ''} size={50} />
+          <Avatar uri={otherPartyUser?.avatar || otherPartyUser?.photo_url || ''} size={44} />
         ) : (
-          <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: colors.border, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: colors.textPrimary, fontWeight: 'bold', fontSize: 20 }}>
+          <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.border, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: colors.textPrimary, fontWeight: 'bold', fontSize: 18 }}>
               {otherPartyUser?.name?.[0] || otherPartyXionAddress?.slice(0,2) || '?'}
             </Text>
           </View>
         )}
       </View>
 
-      <View style={styles.detailsContainer}>
-        <View style={styles.row}>
-          <Text style={[styles.name, { color: colors.textPrimary }]}> 
+      {/* Detalhes principais */}
+      <View style={{ flex: 1, justifyContent: 'center' }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={{ fontSize: 16, fontWeight: '600', color: colors.textPrimary, letterSpacing: 0.1 }} numberOfLines={1}>
             {otherPartyUser?.name || otherPartyXionAddress || 'Unknown'}
           </Text>
-          <View style={styles.amountContainer}>
-            <Text style={[styles.amount, isSender ? styles.sentAmount : styles.receivedAmount]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {isSender ? (
+              <ArrowUpRight size={18} color={colors.alert} style={{ marginRight: 2 }} />
+            ) : (
+              <ArrowDownLeft size={18} color={colors.success} style={{ marginRight: 2 }} />
+            )}
+            <Text style={{
+              fontSize: 16,
+              fontWeight: '700',
+              color: isSender ? colors.alert : colors.success,
+              letterSpacing: 0.2,
+            }}>
               {isSender ? '-' : '+'}{transaction.amount} {transaction.currency}
             </Text>
           </View>
         </View>
 
-        <View style={styles.row}>
-          <View style={styles.statusContainer}>
-            {getTransactionIcon()}
-            <Text style={[styles.status, { color: getStatusColor() }]}>
-              {transaction.status}
-            </Text>
-          </View>
-          <Text style={[styles.date, { color: colors.textSecondary }]}>{formatDate(transaction.date)}</Text>
+        {/* Status e data */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+          <Text style={{
+            fontSize: 13,
+            color: transaction.status === 'completed' ? colors.success : transaction.status === 'pending' ? colors.highlight : colors.alert,
+            fontWeight: '500',
+            marginRight: 8,
+            letterSpacing: 0.1,
+          }}>
+            {transaction.status === 'completed' ? '✔' : transaction.status === 'pending' ? '⏳' : '✖'} {transaction.status}
+          </Text>
+          <Text style={{ fontSize: 12, color: colors.textSecondary, letterSpacing: 0.1 }}>
+            {formatDate(transaction.date)}
+          </Text>
         </View>
 
+        {/* Nota/descrição */}
         {transaction.note && (
-          <Text style={[styles.note, { color: colors.textSecondary }]} numberOfLines={1}>
+          <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 2, letterSpacing: 0.1 }} numberOfLines={1}>
             {transaction.note}
           </Text>
         )}
