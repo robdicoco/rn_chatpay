@@ -21,7 +21,7 @@ import { QuerySnapshot } from 'firebase/firestore';
 import { collection, getDocs } from 'firebase/firestore';
 
 import { organizations } from '@/mocks/organizations';
-import { getAccountBalance } from '../utils/xion_rpc';
+import { getAccountBalances, toDisplayFromBase } from '../utils/xion';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = 300;
@@ -48,7 +48,7 @@ type XionBalance = {
 
 export default function HomeScreen() {
   const { isAuthenticated, user } = useAuthStore();
-  const { transactions } = useTransactionStore();
+  const { transactions, fetchTransactionHistory } = useTransactionStore();
   const { users, fetchAllUsers } = useUsersStore();
   const colors = useThemeColors();
   const [refreshing, setRefreshing] = useState(false);
@@ -58,31 +58,35 @@ export default function HomeScreen() {
   const flatListRef = useRef<FlatList>(null);
   const router = require('expo-router').useRouter();
 
-  useEffect(() => {
-    async function fetchBalance() {
-      if (user?.wallets?.[0]?.account) {
-        try {
-          const res = await getAccountBalance(user.wallets[0].account);
-          const mappedBalances = (res.balances || []).map((item: any, idx: number): XionBalance => ({
+  // Função para buscar saldo
+  async function fetchBalance() {
+    if (user?.wallets?.[0]?.account) {
+      try {
+        const balancesArr = await getAccountBalances(user.wallets[0].account);
+        const mappedBalances = balancesArr
+          .filter((item: any) => item.denom === 'uxion')
+          .map((item: any, idx: number): XionBalance => ({
             id: item.denom || String(idx),
-            name: item.name ?? '',
-            amount: item.amount,
-            currency: item.currency ?? '',
-            icon: item.icon ?? '',
+            name: 'XION',
+            amount: toDisplayFromBase(item.amount),
+            currency: 'XION',
+            icon: '',
             denom: item.denom,
           }));
-          setBalances(mappedBalances);
-          console.log('Saldo XION:', mappedBalances);
-          if (!mappedBalances.length) {
-            console.warn('Nenhum saldo encontrado para a carteira:', user.wallets[0].account);
-          }
-        } catch (err) {
-          console.error('Erro ao buscar saldo XION:', err);
+        setBalances(mappedBalances);
+        if (!mappedBalances.length) {
+          console.warn('No balance found for wallet:', user.wallets[0].account);
         }
+      } catch (err) {
+        console.error('Error fetching XION balance:', err);
       }
     }
+  }
+
+  useEffect(() => {
     fetchBalance();
     fetchAllUsers();
+    fetchTransactionHistory();
   }, [user]);
 
   // Garante que status seja string para compatibilidade com TransactionCard
@@ -93,6 +97,9 @@ export default function HomeScreen() {
     }))
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5);
+
+  // Novo: endereço da carteira do usuário autenticado
+  const currentUserWalletAddress = user?.wallets?.[0]?.account ?? '';
 
   const handleSendMoney = () => {
     if (Platform.OS !== 'web') {
@@ -108,13 +115,13 @@ export default function HomeScreen() {
     router.push('/request-money');
   };
 
-  const onRefresh = React.useCallback(() => {
+  const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    // Simulate a refresh
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
-  }, []);
+    await fetchBalance();
+    await fetchAllUsers();
+    await fetchTransactionHistory();
+    setRefreshing(false);
+  }, [user]);
 
   const handleBalanceScroll = (event: any) => {
     const contentOffset = event.nativeEvent.contentOffset.x;
@@ -251,16 +258,16 @@ export default function HomeScreen() {
 
         {recentTransactions.length > 0 ? (
           recentTransactions.map((transaction) => (
-          <TransactionCard
-            key={transaction.id}
-            transaction={transaction}
-            currentUserId={user?.id ?? ''}
-            contacts={user?.contacts || []}
-            users={users}
-            onPress={() => {
-              // Navigate to transaction details
-            }}
-          />
+            <TransactionCard
+              key={transaction.id}
+              transaction={transaction}
+              currentUserId={currentUserWalletAddress}
+              contacts={user?.contacts || []}
+              users={users}
+              onPress={() => {
+                // Navigate to transaction details
+              }}
+            />
           ))
         ) : (
           <View style={[styles.emptyState, { backgroundColor: colors.card, borderColor: colors.border }]}>

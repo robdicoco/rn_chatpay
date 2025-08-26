@@ -18,6 +18,9 @@ export default function PaymentsScreen() {
   const [activeFilter, setActiveFilter] = useState<'all' | 'sent' | 'received'>('all');
   const colors = useThemeColors();
   
+  // Endereço da carteira do usuário autenticado
+  const currentUserWalletAddress = user?.wallets?.[0]?.account ?? '';
+
   const filteredTransactions = transactions
     .filter(transaction => {
       if (activeFilter === 'all') return true;
@@ -44,12 +47,11 @@ export default function PaymentsScreen() {
     router.push('/request-money');
   };
   
-  const onRefresh = React.useCallback(() => {
+  const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    // Simulate a refresh
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
+    await fetchAllUsers();
+    await useTransactionStore.getState().fetchTransactionHistory();
+    setRefreshing(false);
   }, []);
   
   const renderHeader = () => (
@@ -133,15 +135,15 @@ export default function PaymentsScreen() {
         data={filteredTransactions}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-            <TransactionCard
-              transaction={item}
-              currentUserId={user?.id ?? ''}
-              contacts={user?.contacts || []}
-              users={users}
-              onPress={() => {
-                // Navigate to transaction details
-              }}
-            />
+          <TransactionCard
+            transaction={item}
+            currentUserId={currentUserWalletAddress}
+            contacts={user?.contacts || []}
+            users={users}
+            onPress={() => {
+              // Navigate to transaction details
+            }}
+          />
         )}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.listContent}

@@ -85,6 +85,12 @@ export default function Index() {
     }
   }, [account?.bech32Address]);
 
+  useEffect(() => {
+    if (isConnected && account?.bech32Address) {
+      useAuthStore.getState().addWalletToCurrentUser(account.bech32Address);
+    }
+  }, [isConnected, account?.bech32Address]);
+
   const copyToClipboard = async (text: string) => {
     try {
       await Clipboard.setString(text);

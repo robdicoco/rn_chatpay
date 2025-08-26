@@ -16,7 +16,6 @@ import * as Haptics from 'expo-haptics';
 import Avatar from '@/components/Avatar';
 import Button from '@/components/Button';
 import { useThemeColors } from '@/constants/colors';
-// Removido o mock de contatos
 import { getFirestore, doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { useTransactionStore } from '@/store/transaction-store';
 import { useChatStore } from '@/store/chat-store';
@@ -36,10 +35,18 @@ export default function SendMoneyScreen() {
   const { client } = useAbstraxionSigningClient();
   const { data: account, isConnected } = useAbstraxionAccount();
   const { receiverId } = useLocalSearchParams<{ receiverId?: string }>();
-
-  // Garante que o contato selecionado tenha o campo walletAddress
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [recipientWallet, setRecipientWallet] = useState<string | null>(null);
+  const [amount, setAmount] = useState('');
+  const [note, setNote] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedCurrency, setSelectedCurrency] = useState<'XION' | 'USDC'>('XION');
+  
+  const { sendMoney } = useTransactionStore();
+  const { sendMessageToFirestore } = useChatStore();
+  const { transferTokens } = require('@/app/utils/web3_abstraction_helper').useWeb3Helper();
+  const colors = useThemeColors();
 
   // Busca contatos reais do Firestore
   useEffect(() => {
@@ -74,7 +81,6 @@ export default function SendMoneyScreen() {
     }
     fetchContacts();
   }, [receiverId]);
-  const [recipientWallet, setRecipientWallet] = useState<string | null>(null);
 
   // Busca o wallet address do destinatário na coleção users
   useEffect(() => {
@@ -99,15 +105,7 @@ export default function SendMoneyScreen() {
     }
     fetchRecipientWallet();
   }, [selectedContact]);
-  const [amount, setAmount] = useState('');
-  const [note, setNote] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedCurrency, setSelectedCurrency] = useState<'XION' | 'USDC'>('XION');
-  
-  const { sendMoney } = useTransactionStore();
-  const { sendMessageToFirestore } = useChatStore();
-  const { transferTokens } = require('@/app/utils/web3_abstraction_helper').useWeb3Helper();
-  const colors = useThemeColors();
+
   
   const handleAmountChange = (text: string) => {
     // Only allow numbers and a single decimal point
@@ -137,7 +135,6 @@ export default function SendMoneyScreen() {
       Alert.alert('Error', 'Please enter a valid amount');
       return;
     }
-
   
     if (!isConnected) {
       Alert.alert('Error', 'Wallet is not connected. Please connect your wallet.');
@@ -148,7 +145,6 @@ export default function SendMoneyScreen() {
       return;
     }
     if (!account || !account.bech32Address) {
-      console.log('[DEBUG] Falha: account ou bech32Address está undefined');
       Alert.alert('Error', 'Wallet is not connected or address not found.');
       return;
     }
