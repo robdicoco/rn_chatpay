@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { ArrowUpRight, ArrowDownLeft, Clock } from 'lucide-react-native';
+import { ArrowUpRight, ArrowDownLeft, CheckCircle, Clock, XCircle } from 'lucide-react-native';
 
 import Avatar from './Avatar';
 import { useThemeColors } from '@/constants/colors';
@@ -145,7 +145,6 @@ export default function TransactionCard({ transaction, currentUserId, contacts =
         )}
       </View>
 
-      {/* Detalhes principais */}
       <View style={{ flex: 1, justifyContent: 'center' }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text style={{ fontSize: 16, fontWeight: '600', color: colors.textPrimary, letterSpacing: 0.1 }} numberOfLines={1}>
@@ -168,23 +167,31 @@ export default function TransactionCard({ transaction, currentUserId, contacts =
           </View>
         </View>
 
-        {/* Status e data */}
         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+          {transaction.status === 'completed' || transaction.status === 'confirmed' ? (
+            <CheckCircle size={16} color={colors.success} style={{ marginRight: 4 }} />
+          ) : transaction.status === 'pending' ? (
+            <Clock size={16} color={colors.highlight} style={{ marginRight: 4 }} />
+          ) : (
+            <XCircle size={16} color={colors.alert} style={{ marginRight: 4 }} />
+          )}
           <Text style={{
             fontSize: 13,
-            color: transaction.status === 'completed' ? colors.success : transaction.status === 'pending' ? colors.highlight : colors.alert,
+            color: transaction.status === 'completed' || transaction.status === 'confirmed'
+              ? colors.success
+              : transaction.status === 'pending'
+                ? colors.highlight
+                : colors.alert,
             fontWeight: '500',
-            marginRight: 8,
             letterSpacing: 0.1,
           }}>
-            {transaction.status === 'completed' ? '✔' : transaction.status === 'pending' ? '⏳' : '✖'} {transaction.status}
+            {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
           </Text>
-          <Text style={{ fontSize: 12, color: colors.textSecondary, letterSpacing: 0.1 }}>
+          <Text style={{ fontSize: 12, color: colors.textSecondary, marginLeft: 8 }}>
             {formatDate(transaction.date)}
           </Text>
         </View>
 
-        {/* Nota/descrição */}
         {transaction.note && (
           <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 2, letterSpacing: 0.1 }} numberOfLines={1}>
             {transaction.note}

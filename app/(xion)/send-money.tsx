@@ -20,6 +20,7 @@ import { getFirestore, doc, getDoc, collection, query, where, getDocs } from 'fi
 import { useTransactionStore } from '@/store/transaction-store';
 import { useChatStore } from '@/store/chat-store';
 import { useAbstraxionSigningClient, useAbstraxionAccount } from '@burnt-labs/abstraxion-react-native';
+import { useUsersStore } from '@/store/users-store';
 
 export type Contact = {
   id: string;
@@ -46,6 +47,7 @@ export default function SendMoneyScreen() {
   const { sendMoney } = useTransactionStore();
   const { sendMessageToFirestore } = useChatStore();
   const { transferTokens } = require('@/app/utils/web3_abstraction_helper').useWeb3Helper();
+  const { users } = useUsersStore();
   const colors = useThemeColors();
 
   // Busca contatos reais do Firestore
@@ -82,7 +84,6 @@ export default function SendMoneyScreen() {
     fetchContacts();
   }, [receiverId]);
 
-  // Busca o wallet address do destinatário na coleção users
   useEffect(() => {
     async function fetchRecipientWallet() {
       if (selectedContact?.uid_contato) {
@@ -135,7 +136,7 @@ export default function SendMoneyScreen() {
       Alert.alert('Error', 'Please enter a valid amount');
       return;
     }
-  
+
     if (!isConnected) {
       Alert.alert('Error', 'Wallet is not connected. Please connect your wallet.');
       return;
@@ -158,14 +159,33 @@ export default function SendMoneyScreen() {
     try {
       const denom = selectedCurrency === 'XION' ? 'uxion' : 'uusdc';
       const amountMicro = (parseFloat(amount) * 1_000_000).toString();
-      const sender = account && account.bech32Address ? account.bech32Address : null;
-      if (!sender) throw new Error('Connected wallet does not have a valid address.');
+      const sender = account.bech32Address;
       const recipient = recipientWallet;
       if (!recipient) throw new Error('Recipient does not have a connected wallet.');
+
       const result = await transferTokens({ sender, recipient, amount: amountMicro, denom });
       const txHash = result.transactionHash;
 
-      // Envia mensagem especial no chat
+      let contactName = '';
+      if (selectedContact) {
+        contactName = selectedContact.name || '';
+      } else if (recipientWallet) {
+        const found = users.find(u => u.wallets && u.wallets[0]?.account === recipientWallet);
+        contactName = found?.name || '';
+      }
+
+      await useTransactionStore.getState().saveTransaction({
+        txHash,
+        sender,
+        recipient,
+        amount: parseFloat(amount),
+        currency: selectedCurrency,
+        status: 'pending',
+        timestamp: new Date(),
+        note: contactName,
+        direction: 'sent',
+      });
+
       const userId = require('@/store/auth-store').useAuthStore.getState().user?.id;
       const chatId = [userId, selectedContact.id].sort().join('_');
       await sendMessageToFirestore(chatId, {
@@ -179,11 +199,7 @@ export default function SendMoneyScreen() {
         }
       });
 
-      // Atualiza saldo e histórico
-      if (typeof require !== 'undefined') {
-        const { useTransactionStore } = require('@/store/transaction-store');
-        await useTransactionStore.getState().fetchTransactionHistory();
-      }
+      await useTransactionStore.getState().fetchTransactionHistory();
 
       Alert.alert(
         'Success',
@@ -193,7 +209,7 @@ export default function SendMoneyScreen() {
         ]
       );
     } catch (error) {
-      console.error('Erro ao enviar:', error);
+      console.error('Error sending:', error);
       let errorMsg = 'Failed to send payment. Please try again.';
       if (error && typeof error === 'object') {
         if ('message' in error && typeof error.message === 'string') {
@@ -360,15 +376,15 @@ export default function SendMoneyScreen() {
         </View>
       </ScrollView>
       
-      <View style={[styles.buttonContainer, { borderTopColor: colors.border, backgroundColor: colors.card }]}>
+      <View style={[styles.buttonContainer, { borderTopColor: colors.border, backgroundColor: colors.card }]}> 
         <Button
-          title="Send Money"
+          title={isLoading ? 'Enviando...' : 'Enviar'}
           onPress={handleSendMoney}
           gradient
           size="large"
           style={styles.sendButton}
           isLoading={isLoading}
-          disabled={!selectedContact || !amount || parseFloat(amount) <= 0}
+          disabled={!selectedContact || !amount || parseFloat(amount) <= 0 || isLoading}
         />
       </View>
     </KeyboardAvoidingView>

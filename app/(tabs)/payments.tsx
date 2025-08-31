@@ -9,28 +9,68 @@ import { useUsersStore } from '@/store/users-store';
 import { useThemeColors } from '@/constants/colors';
 import { useTransactionStore } from '@/store/transaction-store';
 import { useAuthStore } from '@/store/auth-store';
+import { syncPendingTransactionsStatus } from '@/app/utils/syncTransactionStatus';
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "@/firebaseConfig";
+import type { Transaction } from '@/store/transaction-store';
 
 export default function PaymentsScreen() {
-  const { transactions } = useTransactionStore();
   const { user } = useAuthStore();
   const { users, fetchAllUsers } = useUsersStore();
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'all' | 'sent' | 'received'>('all');
+  const [firestoreTransactions, setFirestoreTransactions] = useState<Transaction[]>([]);
   const colors = useThemeColors();
   
-  // Endereço da carteira do usuário autenticado
   const currentUserWalletAddress = user?.wallets?.[0]?.account ?? '';
 
-  const filteredTransactions = transactions
-    .filter(transaction => {
-      if (activeFilter === 'all') return true;
-      if (activeFilter === 'sent') return transaction.type === 'send';
-      if (activeFilter === 'received') return transaction.type === 'receive';
-      return true;
-    })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  async function fetchTransactionsFromFirestore() {
+    if (!user?.wallets?.[0]?.account) return;
+    try {
+      const wallet = user.wallets[0].account;
+      const qSent = query(collection(db, "transactions"), where("sender", "==", wallet));
+      const qReceived = query(collection(db, "transactions"), where("recipient", "==", wallet));
+      const [sentSnap, receivedSnap] = await Promise.all([
+        getDocs(qSent),
+        getDocs(qReceived)
+      ]);
+      const sentTxs = sentSnap.docs.map(doc => {
+        const data = doc.data() as Record<string, any>;
+        return {
+          id: doc.id,
+          senderId: data.sender,
+          receiverId: data.recipient,
+          amount: data.amount,
+          currency: data.currency,
+          status: String(data.status ?? ''),
+          type: data.direction === 'sent' ? 'send' : 'receive',
+          date: data.timestamp && data.timestamp.seconds ? new Date(data.timestamp.seconds * 1000).toISOString() : '',
+          note: data.note || '',
+        };
+      });
+      const receivedTxs = receivedSnap.docs.map(doc => {
+        const data = doc.data() as Record<string, any>;
+        return {
+          id: doc.id,
+          senderId: data.sender,
+          receiverId: data.recipient,
+          amount: data.amount,
+          currency: data.currency,
+          status: String(data.status ?? ''),
+          type: data.direction === 'received' ? 'receive' : 'send',
+          date: data.timestamp && data.timestamp.seconds ? new Date(data.timestamp.seconds * 1000).toISOString() : '',
+          note: data.note || '',
+        };
+      });
+      setFirestoreTransactions([...sentTxs, ...receivedTxs]);
+    } catch (err) {
+      console.error("Erro ao buscar transações do Firestore:", err);
+    }
+  }
+
   React.useEffect(() => {
     fetchAllUsers();
+    fetchTransactionsFromFirestore();
   }, []);
   
   const handleSendMoney = () => {
@@ -50,10 +90,10 @@ export default function PaymentsScreen() {
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     await fetchAllUsers();
-    await useTransactionStore.getState().fetchTransactionHistory();
+    await syncPendingTransactionsStatus();
+    await fetchTransactionsFromFirestore();
     setRefreshing(false);
-  }, []);
-  
+  }, [user]);
   const renderHeader = () => (
     <View style={styles.header}>
       <Text style={[styles.title, { color: colors.textPrimary }]}>Transactions</Text>
@@ -129,6 +169,15 @@ export default function PaymentsScreen() {
     </View>
   );
   
+  const filteredTransactions = firestoreTransactions
+    .filter(transaction => {
+      if (activeFilter === 'all') return true;
+      if (activeFilter === 'sent') return transaction.type === 'send';
+      if (activeFilter === 'received') return transaction.type === 'receive';
+      return true;
+    })
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FlatList

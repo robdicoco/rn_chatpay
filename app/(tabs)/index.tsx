@@ -18,10 +18,11 @@ import { useAuthStore } from '@/store/auth-store';
 import { useTransactionStore } from '@/store/transaction-store';
 import { db } from '@/firebaseConfig';
 import { QuerySnapshot } from 'firebase/firestore';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from "firebase/firestore";
 
 import { organizations } from '@/mocks/organizations';
 import { getAccountBalances, toDisplayFromBase } from '../utils/xion';
+import { syncPendingTransactionsStatus } from '../utils/syncTransactionStatus';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = 300;
@@ -49,6 +50,7 @@ type XionBalance = {
 export default function HomeScreen() {
   const { isAuthenticated, user } = useAuthStore();
   const { transactions, fetchTransactionHistory } = useTransactionStore();
+  const [firestoreTransactions, setFirestoreTransactions] = useState<Transaction[]>([]);
   const { users, fetchAllUsers } = useUsersStore();
   const colors = useThemeColors();
   const [refreshing, setRefreshing] = useState(false);
@@ -58,7 +60,6 @@ export default function HomeScreen() {
   const flatListRef = useRef<FlatList>(null);
   const router = require('expo-router').useRouter();
 
-  // Função para buscar saldo
   async function fetchBalance() {
     if (user?.wallets?.[0]?.account) {
       try {
@@ -87,18 +88,61 @@ export default function HomeScreen() {
     fetchBalance();
     fetchAllUsers();
     fetchTransactionHistory();
+    fetchTransactionsFromFirestore();
   }, [user]);
 
-  // Garante que status seja string para compatibilidade com TransactionCard
-  const recentTransactions = transactions
+  async function fetchTransactionsFromFirestore() {
+    if (!user?.wallets?.[0]?.account) return;
+    try {
+      const wallet = user.wallets[0].account;
+      const qSent = query(collection(db, "transactions"), where("sender", "==", wallet));
+      const qReceived = query(collection(db, "transactions"), where("recipient", "==", wallet));
+      const [sentSnap, receivedSnap] = await Promise.all([
+        getDocs(qSent),
+        getDocs(qReceived)
+      ]);
+      const sentTxs = sentSnap.docs.map(doc => {
+        const data = doc.data() as Record<string, any>;
+        return {
+          id: doc.id,
+          senderId: data.sender,
+          receiverId: data.recipient,
+          amount: data.amount,
+          currency: data.currency,
+          status: String(data.status ?? ''),
+          type: data.direction === 'sent' ? 'send' : 'receive',
+          date: data.timestamp && data.timestamp.seconds ? new Date(data.timestamp.seconds * 1000).toISOString() : '',
+          note: data.note || '',
+        };
+      });
+      const receivedTxs = receivedSnap.docs.map(doc => {
+        const data = doc.data() as Record<string, any>;
+        return {
+          id: doc.id,
+          senderId: data.sender,
+          receiverId: data.recipient,
+          amount: data.amount,
+          currency: data.currency,
+          status: String(data.status ?? ''),
+          type: data.direction === 'received' ? 'receive' : 'send',
+          date: data.timestamp && data.timestamp.seconds ? new Date(data.timestamp.seconds * 1000).toISOString() : '',
+          note: data.note || '',
+        };
+      });
+      setFirestoreTransactions([...sentTxs, ...receivedTxs]);
+    } catch (err) {
+      console.error("Erro ao buscar transações do Firestore:", err);
+    }
+  }
+
+  const recentTransactions = firestoreTransactions
     .map((tx) => ({
       ...tx,
       status: String(tx.status ?? ''),
     }))
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5);
 
-  // Novo: endereço da carteira do usuário autenticado
   const currentUserWalletAddress = user?.wallets?.[0]?.account ?? '';
 
   const handleSendMoney = () => {
@@ -120,6 +164,8 @@ export default function HomeScreen() {
     await fetchBalance();
     await fetchAllUsers();
     await fetchTransactionHistory();
+    await syncPendingTransactionsStatus();
+    await fetchTransactionsFromFirestore();
     setRefreshing(false);
   }, [user]);
 
@@ -159,7 +205,6 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Exibe os saldos reais do blockchain XION */}
       <View style={styles.balanceCarouselContainer}>
         {balances.length > 0 ? (
           <FlatList
@@ -187,31 +232,6 @@ export default function HomeScreen() {
         )}
         <PaginationDots total={balances.length} current={activeBalanceIndex} />
       </View>
-
-      { /*<View style={styles.organizationsSection}>
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Donate for a Cause</Text>
-          <TouchableOpacity>
-            <Text style={[styles.seeAllText, { color: colors.primary }]}>See All</Text>
-          </TouchableOpacity>
-        </View>
-        
-        <FlatList
-          data={organizations}
-          keyExtractor={(item) => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.organizationsCarouselContent}
-          renderItem={({ item }) => (
-            <OrganizationCard 
-              organization={item} 
-              onPress={() => {
-                router.push(`/(tabs)/organization/${item.id}`);
-              }}
-            />
-          )}
-        />
-      </View> */}
 
       <View style={styles.quickActionsSection}>
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Quick Actions</Text>

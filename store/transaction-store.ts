@@ -1,10 +1,10 @@
-// src/stores/transaction-store.ts
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from './auth-store';
 import { useUsersStore } from './users-store';
 import { getAddressTransactionsREST, getAccountBalances } from '../app/utils/xion';
+import { saveTransactionToFirestore } from '../app/utils/transactionFirestore';
 
 // Denom para nome amigável (opcional)
 export function mapDenom(denom: string): string {
@@ -36,6 +36,17 @@ interface TransactionStore {
 
   fetchTransactionHistory: () => Promise<void>;
   fetchAndUpdateBalance: () => Promise<void>;
+  saveTransaction: (params: {
+    txHash: string;
+    sender: string;
+    recipient: string;
+    amount: number;
+    currency: string;
+    status?: string;
+    timestamp?: Date;
+    note?: string;
+    direction?: 'sent' | 'received';
+  }) => Promise<void>;
 }
 
 export const useTransactionStore = create<TransactionStore>()(
@@ -112,6 +123,24 @@ export const useTransactionStore = create<TransactionStore>()(
           set({ balance: result });
         } catch {
           set({ error: 'Error fetching balance' });
+        }
+      },
+
+      saveTransaction: async (params) => {
+        try {
+          await saveTransactionToFirestore({
+            txHash: params.txHash,
+            sender: params.sender,
+            recipient: params.recipient,
+            amount: params.amount,
+            currency: params.currency,
+            status: params.status || 'pending',
+            timestamp: params.timestamp || new Date(),
+            note: params.note,
+            direction: params.direction,
+          });
+        } catch (error) {
+          console.error('Error saving transaction:', error);
         }
       },
     }),
