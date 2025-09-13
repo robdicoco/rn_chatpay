@@ -58,14 +58,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
         }}
       />
-
-      <Tabs.Screen
-        name="organization"
-        options={{
-          title: "Orgs",
-          tabBarIcon: ({ color, size }) => <Building size={size} color={color} />,
-        }}
-      />
     </Tabs>
   );
 }

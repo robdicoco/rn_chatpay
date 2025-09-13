@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useUsersStore } from '@/store/users-store';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, FlatList, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, FlatList, Dimensions, Platform, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowUpRight, ArrowDownLeft, Plus, Send, Wallet } from 'lucide-react-native';
+import { Animated } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import TransactionCard from '@/components/TransactionCard';
 import Avatar from '@/components/Avatar';
@@ -19,6 +20,7 @@ import { useTransactionStore } from '@/store/transaction-store';
 import { db } from '@/firebaseConfig';
 import { QuerySnapshot } from 'firebase/firestore';
 import { collection, getDocs, query, where } from "firebase/firestore";
+import Clipboard from 'expo-clipboard';
 
 import { organizations } from '@/mocks/organizations';
 import { getAccountBalances, toDisplayFromBase } from '../utils/xion';
@@ -48,6 +50,24 @@ type XionBalance = {
 };
 
 export default function HomeScreen() {
+  // Animation for ArrowUpRight icon
+  const arrowAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(arrowAnim, {
+          toValue: -8,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(arrowAnim, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        })
+      ])
+    ).start();
+  }, [arrowAnim]);
   const { isAuthenticated, user } = useAuthStore();
   const { transactions, fetchTransactionHistory } = useTransactionStore();
   const [firestoreTransactions, setFirestoreTransactions] = useState<Transaction[]>([]);
@@ -231,39 +251,32 @@ export default function HomeScreen() {
           </View>
         )}
         <PaginationDots total={balances.length} current={activeBalanceIndex} />
-      </View>
-
-      <View style={styles.quickActionsSection}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Quick Actions</Text>
-        
-        <View style={styles.quickActionsGrid}>
+        <View style={styles.faucetButtonRow}>
           <TouchableOpacity 
-            style={[styles.quickActionItem, { backgroundColor: colors.card, borderColor: colors.border }]}
+            style={[styles.walletActionButtonSmall, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={() => router.push('/faucet')}
+            activeOpacity={0.85}
+          >
+            <Plus size={16} color={colors.primary} style={{ marginRight: 5 }} />
+            <Text style={[styles.walletActionTextSmall, { color: colors.textPrimary }]}>Get Testnet Tokens</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.walletActionsRowSmall}>
+          <TouchableOpacity 
+            style={[styles.walletActionButtonSmall, { backgroundColor: colors.card, borderColor: colors.border }]}
             onPress={handleSendMoney}
+            activeOpacity={0.85}
           >
-            <View style={[styles.quickActionIcon, { backgroundColor: 'rgba(46, 204, 113, 0.2)' }]}>
-              <ArrowUpRight size={24} color={colors.primary} />
-            </View>
-            <Text style={[styles.quickActionText, { color: colors.textPrimary }]}>Send Money</Text>
+            <ArrowUpRight size={16} color={colors.primary} style={{ marginRight: 5 }} />
+            <Text style={[styles.walletActionTextSmall, { color: colors.textPrimary }]}>Send Money</Text>
           </TouchableOpacity>
-          
           <TouchableOpacity 
-            style={[styles.quickActionItem, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={handleRequestMoney}
+            style={[styles.walletActionButtonSmall, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={() => router.push('/payments')}
+            activeOpacity={0.85}
           >
-            <View style={[styles.quickActionIcon, { backgroundColor: 'rgba(41, 128, 185, 0.2)' }]}>
-              <ArrowDownLeft size={24} color={colors.secondary} />
-            </View>
-            <Text style={[styles.quickActionText, { color: colors.textPrimary }]}>Request Money</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.quickActionItem, { backgroundColor: colors.card, borderColor: colors.border }]}
-          >
-            <View style={[styles.quickActionIcon, { backgroundColor: 'rgba(241, 196, 15, 0.2)' }]}>
-              <Plus size={24} color={colors.highlight} />
-            </View>
-            <Text style={[styles.quickActionText, { color: colors.textPrimary }]}>Add Card</Text>
+            <Send size={16} color={colors.primary} style={{ marginRight: 5 }} />
+            <Text style={[styles.walletActionTextSmall, { color: colors.textPrimary }]}>View Transactions</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -300,6 +313,33 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  sendMoneyButton: {
+    flex: 1,
+    minWidth: '40%',
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+  },
+  sendMoneyGradient: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 22,
+    paddingHorizontal: 18,
+    borderRadius: 16,
+  },
+  sendMoneyText: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: '700',
+    marginTop: 10,
+    textAlign: 'center',
+    letterSpacing: 0.2,
+  },
   container: {
     
     flex: 1,
@@ -367,34 +407,112 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 16,
   },
-  quickActionsSection: {
-    marginBottom: 24,
-  },
-  quickActionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 16,
-    gap: 12,
-  },
-  quickActionItem: {
-    flex: 1,
-    minWidth: '30%',
-    borderRadius: 12,
-    padding: 16,
+  sendMoneyCompactWrapper: {
     alignItems: 'center',
-    borderWidth: 1,
+    marginTop: 8,
+    marginBottom: 0,
   },
-  quickActionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  sendMoneyCompactButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    borderWidth: 1,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
   },
-  quickActionText: {
+  sendMoneyCompactText: {
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.1,
+  },
+  walletActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 12,
+    marginBottom: 0,
+  },
+  walletActionsRowSmall: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 14,
+    marginTop: 8,
+    marginBottom: 0,
+  },
+  walletActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+  },
+  walletActionButtonSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+  },
+  walletActionText: {
     fontSize: 14,
-    textAlign: 'center',
+    fontWeight: '600',
+    letterSpacing: 0.1,
+  },
+  walletActionTextSmall: {
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.1,
+  },
+  faucetButtonWrapper: {
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  faucetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
+    paddingVertical: 13,
+    paddingHorizontal: 28,
+    borderWidth: 2,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 8,
+  },
+  faucetButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  faucetButtonRow: {
+    alignItems: 'center',
+    marginTop: 14,
+    marginBottom: 8,
   },
 });
 

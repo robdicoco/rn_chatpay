@@ -1,292 +1,405 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   StyleSheet,
   Text,
-  TouchableOpacity,
   Alert,
   ScrollView,
-  Clipboard,
+  TouchableOpacity,
+  Platform,
+  Animated,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useAbstraxionAccount } from "@burnt-labs/abstraxion-react-native";
 import { useAuthStore } from "@/store/auth-store";
+import { useThemeColors } from "@/constants/colors";
 import { router } from "expo-router";
-import { auth, db } from "@/firebaseConfig";
-import { collection, getDocs, query, where, doc, setDoc, updateDoc } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
-import { User, Chain } from '@/mocks/users';
-import { Buffer } from "buffer";
-import crypto from "react-native-quick-crypto";
 import Button from "@/components/Button";
+import { Loader, CheckCircle, Copy } from "lucide-react-native";
 
-global.crypto = crypto;
-global.Buffer = Buffer;
+const DETECTING_MIN_TIME = 6000; // ms
+const CHECK_PHASE_TIME = 2500; // ms
 
-if (!process.env.EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS) {
-  throw new Error(
-    "EXPO_PUBLIC_USER_MAP_CONTRACT_ADDRESS is not set in your environment file"
-  );
-}
-
-export default function Index() {
+export default function XionConnectGate() {
   const { user } = useAuthStore();
-  const firebaseUser = getAuth().currentUser;
-  const [userWallet, setUserWallet] = useState<Chain>({name: "XION", account: " "});
-  const currentUser = user?.email;
-  const loggedUser: User = {
-    email: currentUser || " ",
-    id: firebaseUser?.uid || " ",
-    wallets: [{name: userWallet.name, account: userWallet.account}],
-  };
-
-  // Abstraxion hooks
   const {
     data: account,
-    logout,
-    login,
+    login: walletLogin,
+    logout: walletLogout,
     isConnected,
     isConnecting,
   } = useAbstraxionAccount();
 
-  loggedUser.wallets = [{name: userWallet.name, account: account?.bech32Address}];
+  // Use design system colors
+  const colors = useThemeColors();
+  const address = account?.bech32Address ?? "";
 
-  const prevAccountRef = useRef<string | undefined>(account?.bech32Address || "");
-  prevAccountRef.current = user?.wallets?.[0]?.account || "";
-  const [loading, setLoading] = useState(false);
-  const [hasWalletJustConnected, setHasWalletJustConnected] = useState(false);
-  const prevWalletAddress = useRef<string | undefined>(undefined);
+  // State machine
+  const [phase, setPhase] = useState<"detecting" | "idle" | "connecting" | "check" | "ready">("detecting");
+  const [userClickedConnect, setUserClickedConnect] = useState(false);
+  const [detectingDone, setDetectingDone] = useState(false);
+
+  // Loader spinner
+  const spinAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    let anim: Animated.CompositeAnimation | undefined;
+    if (phase === "connecting") {
+      spinAnim.setValue(0);
+      anim = Animated.loop(
+        Animated.timing(spinAnim, { toValue: 1, duration: 1800, useNativeDriver: true })
+      );
+      anim.start();
+    }
+    return () => {
+      if (anim) anim.stop();
+    };
+  }, [phase]);
+  const spin = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
+
+  // Detecting phase: wait minimum time before deciding next state
+  useEffect(() => {
+    setPhase("detecting");
+    setDetectingDone(false);
+    const timer = setTimeout(() => setDetectingDone(true), DETECTING_MIN_TIME);
+    return () => clearTimeout(timer);
+  }, [user?.id]);
+
+  // Main state machine
+  useEffect(() => {
+    if (!user) return;
+
+    if (!detectingDone) {
+      setPhase("detecting");
+      return;
+    }
+
+    if (isConnected && address) {
+      if (phase !== "check" && phase !== "ready") {
+        setPhase("check");
+        setTimeout(() => setPhase("ready"), CHECK_PHASE_TIME);
+      }
+      return;
+    }
+
+    if ((isConnecting || userClickedConnect) && isConnected && address) {
+      if (phase !== "check" && phase !== "ready") {
+        setPhase("check");
+        setTimeout(() => setPhase("ready"), CHECK_PHASE_TIME);
+      }
+      return;
+    }
+
+    if (isConnecting || userClickedConnect) {
+      setPhase("connecting");
+      return;
+    }
+
+    if (isConnected && !address) {
+      setPhase("detecting");
+      return;
+    }
+
+    if (!isConnected && !isConnecting && detectingDone) {
+      setPhase("idle");
+      return;
+    }
+  }, [isConnected, isConnecting, address, userClickedConnect, detectingDone, phase, user]);
 
   useEffect(() => {
-    if (
-      prevWalletAddress.current !== account?.bech32Address &&
-      account?.bech32Address
-    ) {
-      setHasWalletJustConnected(true);
+    if (phase === "ready" && address) {
+      useAuthStore.getState().addWalletToCurrentUser(address).catch(() => {});
     }
-    prevWalletAddress.current = account?.bech32Address;
-  }, [account?.bech32Address]);
+  }, [phase, address]);
 
-  useEffect(() => {
-    if (hasWalletJustConnected) {
-      router.push('/(tabs)/chat');
-      setHasWalletJustConnected(false);
-    }
-  }, [hasWalletJustConnected]);
-
-  useEffect(() => {
-    const currentAccount = account?.bech32Address;
-    if (
-      currentAccount != null &&
-      currentAccount !== " " &&
-      prevAccountRef.current !== currentAccount
-    ) {
-      handleUserFirestoreAndAuthStore(loggedUser);
-      prevAccountRef.current = currentAccount;
-    }
-  }, [account?.bech32Address]);
-
-  useEffect(() => {
-    if (isConnected && account?.bech32Address) {
-      useAuthStore.getState().addWalletToCurrentUser(account.bech32Address);
-    }
-  }, [isConnected, account?.bech32Address]);
-
-  const copyToClipboard = async (text: string) => {
+  const handleConnect = async () => {
+    setUserClickedConnect(true);
+    setPhase("connecting");
     try {
-      await Clipboard.setString(text);
-      Alert.alert("Success", "Address copied to clipboard!");
-    } catch (error) {
+      await walletLogin();
+    } catch {
+      setUserClickedConnect(false);
+      setPhase("idle");
+    }
+  };
+
+  const handleLogout = async () => {
+    setUserClickedConnect(false);
+    try {
+      await walletLogout();
+    } finally {
+      await useAuthStore.getState().logout();
+      setPhase("detecting");
+    }
+  };
+
+  const copyAddress = async (addr?: string) => {
+    if (!addr) return;
+    try {
+      const { Clipboard } = await import("react-native");
+      Clipboard.setString(addr);
+      Alert.alert("Copied!", "Wallet address copied to clipboard.");
+    } catch {
       Alert.alert("Error", "Failed to copy address");
     }
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-    >
-      <Text style={styles.title}>Welcome to XION</Text>
-
-      {!isConnected ? (
-        <View style={styles.connectButtonContainer}>
-          <Button
-            title={isConnecting ? "Connecting..." : "Connect Wallet"}
-            onPress={login}
-            gradient
-            size="large"
-            style={styles.button}
-            disabled={isConnecting}
-          />
-        </View>
-      ) : (
-        <View style={styles.mainContainer}>
-          <View style={styles.accountInfoContainer}>
-            <Text style={styles.accountLabel}>Connected Account:</Text>
-            <View style={styles.addressContainer}>
-              <Text
-                style={styles.addressText}
-                numberOfLines={1}
-                ellipsizeMode="middle"
-              >
-                {account?.bech32Address}
+    <View style={{ flex: 1 }}>
+      <LinearGradient
+        colors={[colors.background, colors.card]}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.centerWrap}>
+          {/* Detecting wallet */}
+          {user && phase === "detecting" && (
+            <>
+              <Text style={[styles.title, { color: colors.primary }]}>
+                Welcome to ChatPay Go
               </Text>
-              <TouchableOpacity
-                onPress={() =>
-                  account?.bech32Address &&
-                  copyToClipboard(account.bech32Address)
-                }
-                style={styles.copyButton}
-              >
-                <Text style={styles.copyButtonText}>Copy</Text>
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity
-              onPress={logout}
-              style={[
-                styles.menuButton,
-                styles.logoutButton,
-                (loading) && styles.disabledButton,
-              ]}
-              disabled={loading}
-            >
-              <Text style={styles.buttonText}>Logout</Text>
-            </TouchableOpacity>
-          </View>
+              <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                To get started, connect your wallet.
+              </Text>
+              <View style={styles.loaderWrap}>
+                <Animated.View style={{ transform: [{ rotate: spin }] }}>
+                  <Loader size={44} color={colors.primary} />
+                </Animated.View>
+              </View>
+              <Text style={[styles.detectingText, { color: colors.textPrimary }]}>
+                We are checking if you already have a wallet connected to your account.
+              </Text>
+              <Text style={[styles.detectingTextSmall, { color: colors.textSecondary }]}>
+                This process may take a few seconds. Please wait...
+              </Text>
+            </>
+          )}
+
+          {user && phase === "connecting" && (
+            <>
+              <Text style={[styles.title, { color: colors.primary }]}>Connecting wallet...</Text>
+              <View style={styles.loaderWrap}>
+                <Animated.View style={{ transform: [{ rotate: spin }] }}>
+                  <Loader size={44} color={colors.primary} />
+                </Animated.View>
+              </View>
+              <Text style={[styles.detectingText, { color: colors.textSecondary }]}>
+                Initializing secure connection.
+              </Text>
+            </>
+          )}
+
+          {user && phase === "idle" && (
+            <>
+              <Text style={[styles.title, { color: colors.primary }]}>Connect your wallet</Text>
+              <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                To get started, connect your wallet. It's quick and secure.
+              </Text>
+              <Button
+                title="Connect Wallet"
+                onPress={handleConnect}
+                isLoading={false}
+                gradient
+                size="large"
+                style={styles.connectButton}
+                textStyle={{ color: colors.white, fontWeight: "700", fontSize: 17 }}
+              />
+            </>
+          )}
+
+          {user && phase === "check" && (
+            <>
+              <CheckCircle size={44} color={colors.primary} style={{ marginBottom: 18 }} />
+              <Text style={[styles.title, { color: colors.primary }]}>Wallet connected!</Text>
+              <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Your wallet is ready to use.</Text>
+            </>
+          )}
+
+          {user && phase === "ready" && address && (
+            <>
+              <View style={[styles.walletCard, { backgroundColor: colors.card, shadowColor: colors.black }]}> 
+                <Text style={[styles.walletCardTitle, { color: colors.textPrimary }]}>Wallet Connected</Text>
+                <View style={styles.walletAddressRow}>
+                  <Text
+                    style={{
+                      ...styles.walletCardAddress,
+                      color: colors.primary,
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                    }}
+                    selectable
+                    numberOfLines={1}
+                    ellipsizeMode="middle"
+                  >
+                    {address}
+                  </Text>
+                  <TouchableOpacity
+                    style={{ ...styles.walletCopyButton, borderColor: colors.border }}
+                    onPress={() => copyAddress(address)}
+                    activeOpacity={0.7}
+                  >
+                    <Copy color={colors.primary} size={20} />
+                  </TouchableOpacity>
+                </View>
+                <Text style={[styles.walletCardLabel, { color: colors.textSecondary }]}> 
+                  This is your wallet address. Keep it safe!
+                </Text>
+                <View style={styles.walletCardActions}>
+                  <Button
+                    title="Logout"
+                    onPress={handleLogout}
+                    size="small"
+                    gradient={false}
+                    style={{
+                      ...styles.walletLogoutButton,
+                      backgroundColor: colors.alert,
+                    }}
+                    textStyle={{ color: colors.white, fontWeight: "600", fontSize: 13 }}
+                  />
+                </View>
+              </View>
+              <Button
+                title="Proceed to app"
+                gradient
+                size="large"
+                style={styles.walletProceedButtonOutside}
+                textStyle={{ color: colors.white, fontWeight: "700", fontSize: 17 }}
+                onPress={() => router.replace("/(tabs)/chat")}
+              />
+            </>
+          )}
         </View>
-      )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
-// Async function to handle Firestore user query/update and auth-store save
-async function handleUserFirestoreAndAuthStore(loggedUser: User) { 
-    const userRef = collection(db, "users");
-    const q = query(userRef, where("id", "==", loggedUser.id));
-    const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
-      const docId = querySnapshot.docs[0].id;
-      const docRef = doc(userRef, docId);
-      await updateDoc(docRef, {
-        ...loggedUser,
-        createdAt: new Date()
-      });
-    }
-    // Save to auth-store
-    const prevUser = useAuthStore.getState().user;
-    useAuthStore.setState({
-      user: {
-        ...prevUser,
-        ...loggedUser,
-        wallets: loggedUser.wallets,
-      },
-      isAuthenticated: true,
-    });
-}
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#121212",
-  },
+  container: { flex: 1 },
   contentContainer: {
-    padding: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingTop: Platform.OS === "ios" ? 60 : 40,
+    paddingBottom: Platform.OS === "ios" ? 50 : 30,
   },
+  centerWrap: { flex: 1, justifyContent: "center", alignItems: "center", width: "100%" },
+
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    color: "#ECEFF1",
+    fontSize: 28,
+    fontWeight: "700",
+    marginBottom: 12,
     textAlign: "center",
+    letterSpacing: 0.2,
   },
-  mainContainer: {
-    flex: 1,
-    gap: 20,
-  },
-  accountInfoContainer: {
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: "#ddd",
-  },
-  accountLabel: {
+  subtitle: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#666",
+    fontWeight: "500",
+    marginBottom: 28,
+    textAlign: "center",
+    letterSpacing: 0.1,
+  },
+  loaderWrap: {
+    marginVertical: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  detectingText: {
+    fontSize: 15,
+    fontWeight: "500",
+    marginBottom: 6,
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  detectingTextSmall: {
+    fontSize: 14,
+    fontWeight: "400",
+    textAlign: "center",
+    lineHeight: 20,
     marginBottom: 8,
   },
-  addressContainer: {
-    flexDirection: "row",
+  connectButton: {
+    width: "100%",
+    marginBottom: 8,
+  },
+  walletCard: {
+    width: "100%",
+    borderRadius: 18,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.10,
+    shadowRadius: 18,
+    elevation: 6,
     alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#f5f5f5",
-    padding: 10,
-    borderRadius: 5,
-  },
-  addressText: {
-    flex: 1,
-    fontSize: 14,
-    color: "#666",
-    marginRight: 10,
-  },
-  copyButton: {
-    backgroundColor: "#2196F3",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 4,
-  },
-  copyButtonText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  button: {
-    width: '100%',
+    marginTop: 16,
     marginBottom: 16,
   },
-  menuButton: {
-    padding: 15,
-    borderRadius: 5,
-    backgroundColor: "#2196F3",
+  walletCardTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 18,
+    textAlign: "center",
+    letterSpacing: 0.2,
+  },
+  walletAddressRow: {
+    flexDirection: "row",
     alignItems: "center",
-    flex: 1,
-    minWidth: 120,
-    maxWidth: "48%",
+    justifyContent: "center",
+    marginBottom: 10,
+    width: "100%",
   },
-  buttonText: {
-    color: "#fff",
+  walletCardAddress: {
     fontSize: 16,
-    fontWeight: "500",
-  },
-  disabledButton: {
-    backgroundColor: "#ccc",
-    opacity: 0.6,
-  },
-  label: {
-    fontSize: 16,
-    color: "#333",
-    marginBottom: 5,
-  },
-  input: {
-    backgroundColor: "#fff",
-    padding: 10,
-    borderRadius: 5,
+    fontWeight: "600",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    maxWidth: "70%",
+    textAlign: "center",
     borderWidth: 1,
-    borderColor: "#ddd",
-    color: "#000",
   },
-  connectButtonContainer: {
-    width: "100%",
-    paddingHorizontal: 20,
+  walletCopyButton: {
+    marginLeft: 10,
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    justifyContent: "center",
     alignItems: "center",
   },
-  logoutButton: {
-    marginTop: 15,
-    backgroundColor: "#dc3545",
+  walletCardLabel: {
+    fontSize: 14,
+    marginBottom: 18,
+    textAlign: "center",
+  },
+  walletCardActions: {
     width: "100%",
-    maxWidth: "100%",
+    alignItems: "flex-end",
+    marginTop: 8,
+  },
+  walletLogoutButton: {
+    width: 90,
+    height: 32,
+    marginBottom: 0,
+    borderRadius: 8,
+    alignSelf: "flex-end",
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  walletProceedButtonOutside: {
+    width: "100%",
+    marginTop: 10,
+    borderRadius: 14,
+    alignSelf: "center",
   },
 });
