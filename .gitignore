@@ -45,3 +45,5 @@ ios/
 
 *.url
 *.lock
+yarn.lock
+package-lock.json
