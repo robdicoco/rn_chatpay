@@ -59,8 +59,8 @@ The application addresses the growing need for seamless financial communication 
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd xion-mobile-quickstart
+   git clone https://github.com/robdicoco/rn_chatpay
+   cd rn_chatpay
    ```
 
 2. **Install dependencies using Yarn**
@@ -83,19 +83,19 @@ The application addresses the growing need for seamless financial communication 
 
 4. **Start the development server**
    ```bash
-   yarn start
+   npx expo start
    ```
 
 5. **Run on specific platforms**
    ```bash
    # Android
-   yarn android
+   npx expo start android
    
    # iOS
-   yarn ios
+   npx expo start ios
    
    # Web
-   yarn web
+   npx expo start web
    ```
 
 ## 📱 Application Screenshots
@@ -236,7 +236,7 @@ xion-mobile-quickstart/
 └── android/              # Android-specific configuration
 ```
 
-## 🧪 Testing
+## 🧪 Testing (TO DO)
 
 Run the test suite:
 ```bash
