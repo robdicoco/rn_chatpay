@@ -4186,9 +4186,9 @@ expo-constants@~17.1.5, expo-constants@~17.1.6:
     "@expo/config" "~11.0.9"
     "@expo/env" "~1.0.5"
 
-expo-crypto@^14.1.5:
+expo-crypto@~14.1.5:
   version "14.1.5"
-  resolved "https://registry.npmjs.org/expo-crypto/-/expo-crypto-14.1.5.tgz"
+  resolved "https://registry.yarnpkg.com/expo-crypto/-/expo-crypto-14.1.5.tgz#1c29ddd4657d96af6358a9ecdc85a0c344c9ae0c"
   integrity sha512-ZXJoUMoUeiMNEoSD4itItFFz3cKrit6YJ/BR0hjuwNC+NczbV9rorvhvmeJmrU9O2cFQHhJQQR1fjQnt45Vu4Q==
   dependencies:
     base64-js "^1.3.0"
@@ -4243,17 +4243,17 @@ expo-haptics@~14.1.4:
   resolved "https://registry.npmjs.org/expo-haptics/-/expo-haptics-14.1.4.tgz"
   integrity sha512-QZdE3NMX74rTuIl82I+n12XGwpDWKb8zfs5EpwsnGi/D/n7O2Jd4tO5ivH+muEG/OCJOMq5aeaVDqqaQOhTkcA==
 
-expo-image-loader@~5.1.0:
-  version "5.1.0"
-  resolved "https://registry.npmjs.org/expo-image-loader/-/expo-image-loader-5.1.0.tgz"
-  integrity sha512-sEBx3zDQIODWbB5JwzE7ZL5FJD+DK3LVLWBVJy6VzsqIA6nDEnSFnsnWyCfCTSvbGigMATs1lgkC2nz3Jpve1Q==
+expo-image-loader@~6.0.0:
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/expo-image-loader/-/expo-image-loader-6.0.0.tgz#15230442cbb90e101c080a4c81e37d974e43e072"
+  integrity sha512-nKs/xnOGw6ACb4g26xceBD57FKLFkSwEUTDXEDF3Gtcu3MqF3ZIYd3YM+sSb1/z9AKV1dYT7rMSGVNgsveXLIQ==
 
-expo-image-picker@~16.1.4:
-  version "16.1.4"
-  resolved "https://registry.npmjs.org/expo-image-picker/-/expo-image-picker-16.1.4.tgz"
-  integrity sha512-bTmmxtw1AohUT+HxEBn2vYwdeOrj1CLpMXKjvi9FKSoSbpcarT4xxI0z7YyGwDGHbrJqyyic3I9TTdP2J2b4YA==
+expo-image-picker@^17.0.8:
+  version "17.0.8"
+  resolved "https://registry.yarnpkg.com/expo-image-picker/-/expo-image-picker-17.0.8.tgz#c4430994de81f3e9995c9ce77cb76403213b17d7"
+  integrity sha512-489ByhVs2XPoAu9zodivAKLv7hG4S/FOe8hO/C2U6jVxmRjpAKakKNjMml0IwWjf1+c/RYBqm1XxKaZ+vq/fDQ==
   dependencies:
-    expo-image-loader "~5.1.0"
+    expo-image-loader "~6.0.0"
 
 expo-image@~2.3.0:
   version "2.3.0"
