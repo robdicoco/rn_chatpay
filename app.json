@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "ChatPay Go Xion",
-    "slug": "chatpaygoxion",
+    "slug": "chatpaygo-xion",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
