@@ -8,6 +8,7 @@
     "scheme": "chatpaygoxion",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "jsEngine": "hermes",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.chatpay.chatpaygoxion"
@@ -17,7 +18,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.chatpay.chatpaygoxion"
+      "package": "com.chatpay.chatpaygoxion",
+      "edgeToEdgeEnabled": true
     },
     "web": {
       "bundler": "metro",
