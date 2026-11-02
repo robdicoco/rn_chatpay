@@ -8120,14 +8120,14 @@ undici-types@~7.11.0:
   integrity sha512-kt1ZriHTi7MU+Z/r9DOdAI3ONdaR3M3csEaRc6ewa4f4dTvX4cQCbJ4NkEn0ohE4hHtq85+PhPSTY+pO/1PwgA==
 
 undici@^6.18.2:
-  version "6.21.3"
-  resolved "https://registry.yarnpkg.com/undici/-/undici-6.21.3.tgz#185752ad92c3d0efe7a7d1f6854a50f83b552d7a"
-  integrity sha512-gBLkYIlEnSp8pFbT64yFgGE6UIB9tAkhukC23PmMDCe5Nd+cRqKxSjw5y54MK2AZMgZfJWMaNE4nYUHgi1XEOw==
+  version "6.29.1"
+  resolved "https://registry.yarnpkg.com/undici/-/undici-6.29.1.tgz#a3317c5df0236e0633727d9a7bd4f7ed195d8575"
+  integrity sha512-EvRlUt/QqAEvXdQeRMYUfwOQsfzpDztykrG2owGEE/rBOBoYv9uF39ZzsNDh4lTFHhTr2XOZjKkYgueD12ZmGA==
 
 "undici@^6.18.2 || ^7.0.0":
-  version "7.16.0"
-  resolved "https://registry.yarnpkg.com/undici/-/undici-7.16.0.tgz#cb2a1e957726d458b536e3f076bf51f066901c1a"
-  integrity sha512-QEg3HPMll0o3t2ourKwOeUAZ159Kn9mx5pnzHRQO8+Wixmh88YdZRiIwat0iNzNNXn0yoEtXJqFpyW7eM8BV7g==
+  version "7.30.1"
+  resolved "https://registry.yarnpkg.com/undici/-/undici-7.30.1.tgz#360b3de104b94abc52729aa1a4a07e027aa71f73"
+  integrity sha512-03KrMbjIFDWQR5RNPrSw3bd1r12JpyFQl9/yxjUbJtqkjmllqC5lFjZh6ujeuJCKr8EOQvRW872Oy/az+nLYxg==
 
 unicode-canonical-property-names-ecmascript@^2.0.0:
   version "2.0.1"
